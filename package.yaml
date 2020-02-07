@@ -1,0 +1,86 @@
+<<: !include "./hpack/module.yaml"
+
+<<: *meta
+name:                morley-sop
+version:             0.1.0.0
+synopsis:            Sum of products representation and utilities for Michelson values
+description:         A Haskell isomorphism from Michelson values to sums of products with associations makes nested (or)'s and (pair)'s easy.
+category:            Language
+extra-source-files:
+  - README.md
+
+library:
+  <<: *lorentz-lib-common
+
+  dependencies:
+    - containers
+    - data-default
+    - fmt
+    - morley
+    - morley-prelude
+    - named
+    - singletons
+    - text
+    - vinyl
+    - cryptonite
+    - bytestring
+    - aeson
+    - constraints
+    - binary
+    - lorentz-contracts
+    - generics-sop
+    - sop-core
+
+executables:
+  morley-sop:
+    <<: *exec-common
+
+    main: Main.hs
+    source-dirs: app
+
+    dependencies:
+      - containers
+      - fmt
+      - lorentz-contracts
+      - morley
+      - morley-prelude
+      - optparse-applicative
+      - text
+      - named
+      - singletons
+      - binary
+      - bytestring
+      - constraints
+      - aeson
+      - aeson-pretty
+      - morley-sop
+
+tests:
+  morley-sop-test:
+    <<: *test-common
+
+    dependencies:
+      - containers
+      - data-default
+      - fmt
+      - hspec
+      - hspec-expectations
+      - HUnit
+      - lorentz-contracts
+      - morley
+      - morley-prelude
+      - QuickCheck
+      - singletons
+      - tasty
+      - tasty-hspec
+      - tasty-hunit
+      - tasty-quickcheck
+      - vinyl
+      - morley-sop
+      - quickcheck-instances
+      - named
+      - cryptonite
+      - aeson
+      - text
+      - memory
+
