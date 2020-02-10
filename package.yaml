@@ -18,6 +18,7 @@ library:
     - fmt
     - morley
     - morley-prelude
+    - morley-ledgers
     - named
     - singletons
     - text
@@ -27,7 +28,7 @@ library:
     - aeson
     - constraints
     - binary
-    - lorentz-contracts
+    # - lorentz-contracts
     - generics-sop
     - sop-core
 
@@ -41,9 +42,10 @@ executables:
     dependencies:
       - containers
       - fmt
-      - lorentz-contracts
+      # - lorentz-contracts
       - morley
       - morley-prelude
+      - morley-ledgers
       - optparse-applicative
       - text
       - named
@@ -66,9 +68,10 @@ tests:
       - hspec
       - hspec-expectations
       - HUnit
-      - lorentz-contracts
+      # - lorentz-contracts
       - morley
       - morley-prelude
+      - morley-ledgers
       - QuickCheck
       - singletons
       - tasty

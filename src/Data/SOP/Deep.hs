@@ -133,7 +133,6 @@ class HasDict1 a => HasDeep a (f :: a -> Type) | a -> f where
     withDict (singAllTop (singDCode sx)) $
     SOP.hfromI $ from fx
 
-
 -- | Convert an embedded value to a `SOP` of `StepDeep`
 -- by conditionally applying `fromD` or `fromDeep` depending on the
 -- result of `singDCode`
@@ -217,4 +216,37 @@ toDeep sx sop =
   toMapStepDeep1 sx $
   unJoinSOP (singMap @("MapStepDeep" :# '()) (singDCode sx)) $
   sop
+
+-- | Iff @(`DCode` x)@ is a singleton of a singleton,
+-- `Deep` does not recurse on @x@
+class (HasDeep a f, DCode x ~ '[ '[x]]) => IsDeep f (x :: a) where
+instance (HasDeep a f, DCode x ~ '[ '[x]]) => IsDeep f (x :: a) where
+
+-- -- | All elements of @`Deep` (`DCode` x)@ satisfy `IsDeep`
+-- prfIsDeep :: forall a f (x :: a). HasDeep a f => SingI x :- All2 (IsDeep f) (Deep (DCode x))
+-- prfIsDeep = Sub $
+--   case singDCode $ sing @x of
+--     SNil -> Dict
+--     SCons sx sxs ->
+--       case sx of
+--         SCons sy sys -> _ sy sys sxs
+--         SNil -> _ sxs
+--
+-- -- | We can decide whether an embedded value that `HasDeep` `IsDeep`
+-- decIsDeep :: forall a f (x :: a). HasDeep a f => Sing x -> Either (Dict (IsDeep f x) -> Void) (Dict (IsDeep f x))
+-- decIsDeep sx =
+--   case singDCode @a @f sx of
+--     SNil -> Left $ \case
+--     SCons sy sts ->
+--       case sts of
+--         SNil ->
+--           case sy of
+--             SNil -> Left $ \case -- _ sx
+--             SCons sz szs ->
+--               case szs of
+--                 SNil -> _ sx sy
+--                 SCons sw sws -> Left $ \case -- _ sx sy sz szs
+--         SCons sy sys -> Left $ \case -- _ sy sys
+
+
 

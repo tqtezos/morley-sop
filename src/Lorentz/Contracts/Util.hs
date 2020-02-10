@@ -4,6 +4,7 @@
 module Lorentz.Contracts.Util where
 
 import Data.Char
+-- import Data.Functor.Classes
 import GHC.TypeLits (KnownSymbol, symbolVal)
 import Prelude hiding (readEither, unlines, unwords)
 import Text.ParserCombinators.ReadP (ReadP)
@@ -11,22 +12,25 @@ import Text.Read
 import qualified Text.ParserCombinators.ReadP as P
 
 import Data.Aeson
-import Data.Functor.Contravariant
-import qualified Data.Aeson as Aeson
-import qualified Data.Aeson.Encoding as Aeson
+-- import qualified Data.Aeson as Aeson
+-- import qualified Data.Aeson.Encoding as Aeson
 import qualified Data.Text as T
 
+import Lorentz.Value
 import Lorentz.Macro
-import Michelson.Typed.Haskell.Value
+import Lorentz.Constraints
+-- import Michelson.Typed.Haskell.Value
 import Michelson.Typed.Instr (Instr)
 import Michelson.Typed.Value
 import Named
 import Tezos.Address
 import Tezos.Crypto
-import qualified Crypto.PubKey.Ed25519 as Ed25519
+import qualified Tezos.Crypto.Ed25519 as Ed25519
+import qualified Tezos.Crypto.Secp256k1 as Secp256k1
+import qualified Tezos.Crypto.P256 as P256
+-- import qualified Crypto.PubKey.Ed25519 as Ed25519
 
-
-deriving instance Read KeyHash
+-- deriving instance Read KeyHash
 
 instance IsoValue (Value' Instr t) where
   type ToT (Value' Instr t) = t
@@ -81,14 +85,14 @@ readAddressP =
 instance Read Address where
   readPrec = readP_to_Prec $ const readAddressP
 
-instance Read (ContractAddr cp) where
+instance NiceParameter cp => Read (ContractRef cp) where
   readPrec =
     readP_to_Prec . const $ do
-      P.string "ContractAddr"
+      P.string "ContractRef"
       P.skipSpaces
-      ContractAddr <$> readAddressP
+      toContractRef <$> readAddressP
 
-instance Read a => Read (View a r) where
+instance (Read a, NiceParameter r) => Read (View a r) where
   readPrec =
     readP_to_Prec $ \prec' -> do
       P.skipSpaces
@@ -96,7 +100,7 @@ instance Read a => Read (View a r) where
       P.skipSpaces
       viewArg <- readPrec_to_P (parens readPrec) prec'
       P.skipSpaces
-      View viewArg . ContractAddr <$> readAddressP
+      View viewArg . toContractRef <$> readAddressP
 
 instance (Read a, KnownSymbol name) => Read (NamedF Identity a name) where
   -- show (ArgF a) = symbolVal (Proxy @name) <> " :! " <> show a
@@ -123,13 +127,13 @@ instance Read PublicKey where
         Left err -> fail $ show err
         Right res -> return res
 
-instance Read SecretKey where
-  readPrec = readP_to_Prec $ \_ ->
-    maybeInQuotesP $ do
-      eNonQuoteChars <- parseSecretKey . T.pack <$> P.munch1 isAlphaNum
-      case eNonQuoteChars of
-        Left err -> fail $ show err
-        Right res -> return res
+-- instance Read SecretKey where
+--   readPrec = readP_to_Prec $ \_ ->
+--     maybeInQuotesP $ do
+--       eNonQuoteChars <- parseSecretKey . T.pack <$> P.munch1 isAlphaNum
+--       case eNonQuoteChars of
+--         Left err -> fail $ show err
+--         Right res -> return res
 
 instance Read Signature where
   readPrec = readP_to_Prec $ \_ ->
@@ -139,32 +143,45 @@ instance Read Signature where
         Left err -> fail $ show err
         Right res -> return res
 
-deriving instance Ord PublicKey
-
 -- | Since `Ed25519.PublicKey` doesn't expose
 -- many instances, we convert to `String` and
 -- compare the results
 instance Ord Ed25519.PublicKey where
   compare x y = show x `compare` (show y :: String)
 
-instance ToJSON Ed25519.PublicKey where
-  toJSON = Aeson.String . formatPublicKey . PublicKey
-  toEncoding = Aeson.text . formatPublicKey . PublicKey
+-- | Since `Secp256k1.PublicKey` doesn't expose
+-- many instances, we convert to `String` and
+-- compare the results
+instance Ord Secp256k1.PublicKey where
+  compare x y = show x `compare` (show y :: String)
 
-instance FromJSON Ed25519.PublicKey where
-  parseJSON =
-    Aeson.withText "PublicKey" $
-    either (fail . show) (pure . unPublicKey) . parsePublicKey
+-- | Since `P256.PublicKey` doesn't expose
+-- many instances, we convert to `String` and
+-- compare the results
+instance Ord P256.PublicKey where
+  compare x y = show x `compare` (show y :: String)
+
+deriving instance Ord PublicKey
 
 
-instance ToJSONKey Ed25519.PublicKey where
-instance FromJSONKey Ed25519.PublicKey where
+-- instance ToJSON Ed25519.PublicKey where
+--   toJSON = Aeson.String . formatPublicKey . PublicKeyEd25519
+--   toEncoding = Aeson.text . formatPublicKey . PublicKeyEd25519
+
+-- instance FromJSON Ed25519.PublicKey where
+--   parseJSON =
+--     Aeson.withText "PublicKey" $
+--     either (fail . show) (pure . unPublicKey) . parsePublicKey
+
+
+-- instance ToJSONKey Ed25519.PublicKey where
+-- instance FromJSONKey Ed25519.PublicKey where
 
 instance ToJSONKey PublicKey where
-  toJSONKey = contramap unPublicKey toJSONKey
-  toJSONKeyList = contramap (fmap unPublicKey) toJSONKeyList
+  -- toJSONKey = contramap _ toJSONKey
+  -- toJSONKeyList = contramap (fmap _) toJSONKeyList
 
 instance FromJSONKey PublicKey where
-  fromJSONKey = fmap PublicKey fromJSONKey
-  fromJSONKeyList = fmap (fmap PublicKey) fromJSONKeyList
+  -- fromJSONKey = fmap _ fromJSONKey
+  -- fromJSONKeyList = fmap (fmap _) fromJSONKeyList
 

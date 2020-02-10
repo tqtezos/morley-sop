@@ -132,10 +132,7 @@ unConcatNP sxs sop =
 -- | Join nested `SOP`'s
 --
 -- @
---  | Join nested `SOP`'s
---
--- @
---  \sxs ->
+--  \\sxs ->
 --  `SOP` .
 --  `concatNP` sxs .
 --  `concatNS` sxs .
@@ -158,7 +155,7 @@ joinSOP sxs =
 -- | Un-join nested `SOP`'s
 --
 -- @
---  \sxs ->
+--  \\sxs ->
 --  `innerFromPOS` sxs .
 --  `innerUnDistributePOS` sxs .
 --  `innerFromNSNP` sxs .

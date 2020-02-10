@@ -3,10 +3,13 @@
 module Data.Constraint.HasDict1 where
 
 import Prelude (($))
+import Data.List.NonEmpty (NonEmpty(..))
 
 import Data.Constraint
 import Data.Singletons
+import Data.Singletons.TypeLits (Sing(..), Symbol)
 import Data.Singletons.Prelude.List (Sing(..))
+import Data.Singletons.Prelude.List.NonEmpty (Sing(..))
 import Data.Singletons.Prelude.Tuple
 
 -- | Proof that `Sing` entails `SingI`
@@ -25,4 +28,13 @@ instance (HasDict1 a, HasDict1 b) => HasDict1 (a, b) where
     withDict (evidence1 sx) $
     withDict (evidence1 sy) $
     Dict
+
+instance HasDict1 a => HasDict1 (NonEmpty a) where
+  evidence1 ((:%|) sx sxs) =
+    withDict (evidence1 sx) $
+    withDict (evidence1 sxs) $
+    Dict
+
+instance HasDict1 Symbol where
+  evidence1 SSym = Dict
 
