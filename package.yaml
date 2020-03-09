@@ -29,6 +29,7 @@ library:
     - constraints
     - binary
     # - lorentz-contracts
+    - morley-lorentz
     - generics-sop
     - sop-core
 

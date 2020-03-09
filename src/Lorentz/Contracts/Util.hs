@@ -17,8 +17,8 @@ import Data.Aeson
 import qualified Data.Text as T
 
 import Lorentz.Value
-import Lorentz.Macro
-import Lorentz.Constraints
+-- import Lorentz.Macro
+-- import Lorentz.Constraints
 -- import Michelson.Typed.Haskell.Value
 import Michelson.Typed.Instr (Instr)
 import Michelson.Typed.Value
@@ -85,22 +85,22 @@ readAddressP =
 instance Read Address where
   readPrec = readP_to_Prec $ const readAddressP
 
-instance NiceParameter cp => Read (ContractRef cp) where
-  readPrec =
-    readP_to_Prec . const $ do
-      P.string "ContractRef"
-      P.skipSpaces
-      toContractRef <$> readAddressP
+-- instance NiceParameter cp => Read (ContractRef cp) where
+--   readPrec =
+--     readP_to_Prec . const $ do
+--       P.string "ContractRef"
+--       P.skipSpaces
+--       toContractRef <$> readAddressP
 
-instance (Read a, NiceParameter r) => Read (View a r) where
-  readPrec =
-    readP_to_Prec $ \prec' -> do
-      P.skipSpaces
-      P.string "View"
-      P.skipSpaces
-      viewArg <- readPrec_to_P (parens readPrec) prec'
-      P.skipSpaces
-      View viewArg . toContractRef <$> readAddressP
+-- instance (Read a, NiceParameter r) => Read (View a r) where
+--   readPrec =
+--     readP_to_Prec $ \prec' -> do
+--       P.skipSpaces
+--       P.string "View"
+--       P.skipSpaces
+--       viewArg <- readPrec_to_P (parens readPrec) prec'
+--       P.skipSpaces
+--       View viewArg . toContractRef <$> readAddressP
 
 instance (Read a, KnownSymbol name) => Read (NamedF Identity a name) where
   -- show (ArgF a) = symbolVal (Proxy @name) <> " :! " <> show a
