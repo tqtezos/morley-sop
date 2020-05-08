@@ -21,8 +21,9 @@ extra-deps:
 - dependent-sum-0.6.2.0
 - dependent-sum-template-0.1.0.0
 - constraints-extras-0.3.0.2@sha256:bf6884be65958e9188ae3c9e5547abfd6d201df021bff8a4704c2c4fe1e1ae5b
-- morley-1.0.0
+- morley-1.1.0
 - morley-prelude-0.3.0@sha256:9e9473ac14cfa206adf0a3700764c0251de05042f1fe45daf9cb8556079ae663,2085
+- lorentz-0.2.0@sha256:94492f1546191c3a4cc0763189aa3313473aa5175ff0c7329fbedf9de0240126,6815
 
 #   # morley-1.0.0 doesn't come with a version of morley-ledgers on hackage
 - git:

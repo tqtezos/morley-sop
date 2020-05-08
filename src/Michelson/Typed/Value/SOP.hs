@@ -1,293 +1,233 @@
-{-# OPTIONS -Wno-missing-export-lists -Wall -Wno-orphans #-}
+{-# OPTIONS -Wno-missing-export-lists #-} -- -Wall -Wno-orphans #-}
 
 module Michelson.Typed.Value.SOP where
 
-import Prelude (($))
--- import Data.Foldable
--- import Data.Maybe
-import Data.Either
--- import Data.Functor
--- import Data.Kind
--- import Data.Traversable
--- import GHC.TypeLits
--- import Data.Ord
+-- import Prelude (($))
+-- import Data.Either
+-- -- import Data.Functor
+-- -- import Data.Kind
+-- -- import Data.Traversable
+-- -- import GHC.TypeLits
+-- -- import Data.Ord
 
--- import Michelson.Typed.Haskell
-import Michelson.Typed.Value
-import Michelson.Typed.Instr (Instr)
-import Michelson.Typed.Sing
-import Michelson.Typed.T
--- import Michelson.Typed.Aliases
+-- -- import Michelson.Typed.Haskell
+-- import Michelson.Typed.Value
+-- import Michelson.Typed.Instr (Instr)
+-- import Michelson.Typed.Sing
+-- import Michelson.Typed.T
+-- -- import Michelson.Typed.Aliases
 
-import Data.Constraint
-import Data.Singletons
-import Data.Singletons.Prelude.List (Sing(..)) -- SCons, SNil)
-import Data.SOP (SOP(..)) -- , NS(..), NP(..), I(..), All, SListI, SListI2)
-import qualified Data.SOP as SOP
--- import Generics.SOP (Generic(..))
+-- import Data.Constraint
+-- import Data.Singletons
+-- import Data.Singletons.Prelude.List (Sing(..)) -- SCons, SNil)
+-- import Data.SOP (SOP(..)) -- , NS(..), NP(..), I(..), All, SListI, SListI2)
+-- import qualified Data.SOP as SOP
+-- -- import Generics.SOP (Generic(..))
 
-import Data.Constraint.HasDict1
-import Data.SOP.Deep
-import Data.SOP.Deep.Annotated
-import Data.SOP.Deep.Annotated.Test
+-- -- import Data.Constraint.HasDict1
+-- -- import Data.SOP.Deep
+-- -- import Data.SOP.Deep.Annotated
+-- -- import Data.SOP.Deep.Annotated.Test
+-- import Michelson.Typed.T.Sing
 
+--instance HasDeep T (Value' Instr) where
+--  type DCode (t :: T) = TCode t
+--  singDCode = singTCode
+--  toD = toValue'
+--  fromD = fromValue'
 
--- | `HasDict1` for `CT`
-singICT :: forall (t :: CT). Sing t -> Dict (SingI t)
-singICT SCInt = Dict
-singICT SCNat = Dict
-singICT SCString = Dict
-singICT SCBytes = Dict
-singICT SCMutez = Dict
-singICT SCBool = Dict
-singICT SCKeyHash = Dict
-singICT SCTimestamp = Dict
-singICT SCAddress = Dict
+---- | `DCode` for `T`
+--type family TCode (t :: T) :: [[T]] where
+--  TCode ('Tc ct) = '[ '[ 'Tc ct]]
+--  TCode ('TKey) = '[ '[ 'TKey]]
+--  TCode ('TUnit) = '[ '[]] -- empty product
+--  TCode ('TSignature) = '[ '[ 'TSignature]]
+--  TCode ('TChainId) = '[ '[ 'TChainId]]
+--  TCode ('TOption t) = '[ '[ 'TOption t]] -- TCode ('TOption t) = '[] ': TCode t
+--  TCode ('TList t) = '[ '[ 'TList t]]
+--  TCode ('TSet ct) = '[ '[ 'TSet ct]]
+--  TCode ('TOperation) = '[ '[ 'TOperation]]
+--  TCode ('TContract t) = '[ '[ 'TContract t]]
+--  TCode ('TPair a b) = '[ '[a, b]] -- TCode a ** TCode b -- cartesian product
+--  TCode ('TOr a b) = '[ '[a], '[b]] -- TCode a ++ TCode b
+--  TCode ('TLambda a b) = '[ '[ 'TLambda a b]]
+--  TCode ('TMap a b) = '[ '[ 'TMap a b]]
+--  TCode ('TBigMap a b) = '[ '[ 'TBigMap a b]]
 
--- | `HasDict1` for `T`
-singIT :: forall (t :: T). Sing t -> Dict (SingI t)
-singIT (STc ct) =
-  withDict (singICT ct) $
-  Dict
-singIT STKey = Dict
-singIT STUnit = Dict
-singIT STSignature = Dict
-singIT STChainId = Dict
-singIT (STOption st) =
-  withDict (singIT st) $
-  Dict
-singIT (STList st) =
-  withDict (singIT st) $
-  Dict
-singIT (STSet st) =
-  withDict (singICT st) $
-  Dict
-singIT STOperation  = Dict
-singIT (STContract st) =
-  withDict (singIT st) $
-  Dict
-singIT (STPair st su) =
-  withDict (singIT st) $
-  withDict (singIT su) $
-  Dict
-singIT (STOr st su) =
-  withDict (singIT st) $
-  withDict (singIT su) $
-  Dict
-singIT (STLambda st su) =
-  withDict (singIT st) $
-  withDict (singIT su) $
-  Dict
-singIT (STMap st su) =
-  withDict (singICT st) $
-  withDict (singIT su) $
-  Dict
-singIT (STBigMap st su) =
-  withDict (singICT st) $
-  withDict (singIT su) $
-  Dict
+---- | `TCode` preserves `Sing`
+--singTCode :: forall (t :: T). Sing t -> Sing (TCode t)
+--singTCode (STc ct) = SCons (SCons (STc ct) SNil) SNil
+--singTCode STKey = SCons (SCons STKey SNil) SNil
+--singTCode STUnit = SCons SNil SNil
+--singTCode STSignature = SCons (SCons STSignature SNil) SNil
+--singTCode STChainId = SCons (SCons STChainId SNil) SNil
+--singTCode (STOption st) = SCons (SCons (STOption st) SNil) SNil
+--singTCode (STList st) = SCons (SCons (STList st) SNil) SNil
+--singTCode (STSet st) = SCons (SCons (STSet st) SNil) SNil
+--singTCode STOperation = SCons (SCons STOperation SNil) SNil
+--singTCode (STContract st) = SCons (SCons (STContract st) SNil) SNil
+--singTCode (STPair st su) = SCons (SCons st (SCons su SNil)) SNil
+--singTCode (STOr st su) = SCons (SCons st SNil) (SCons (SCons su SNil) SNil)
+--singTCode (STLambda st su) = SCons (SCons (STLambda st su) SNil) SNil
+--singTCode (STMap st su) = SCons (SCons (STMap st su) SNil) SNil
+--singTCode (STBigMap st su) = SCons (SCons (STBigMap st su) SNil) SNil
 
-instance HasDict1 T where
-  evidence1 = singIT
+---- | Conversion from a shallow `SOP` of `Value'` to `Value'`.
+----
+---- See `fromValue'`
+--toValue' :: forall instr t. Sing t -> SOP (Value' instr) (TCode t) -> Value' instr t
+--toValue' st xs =
+--  case st of
+--    STc _ct ->
+--      case xs of
+--        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
+--        SOP (SOP.S ys) ->
+--          case ys of
+--    STKey ->
+--      case xs of
+--        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
+--        SOP (SOP.S ys) ->
+--          case ys of
+--    STUnit ->
+--      case xs of
+--        SOP (SOP.Z SOP.Nil) -> VUnit
+--        SOP (SOP.S ys) ->
+--          case ys of
+--    STSignature ->
+--      case xs of
+--        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
+--        SOP (SOP.S ys) ->
+--          case ys of
+--    STChainId ->
+--      case xs of
+--        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
+--        SOP (SOP.S ys) ->
+--          case ys of
+--    STOption (_ :: Sing t') ->
+--      case xs of
+--        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
+--        SOP (SOP.S ys) ->
+--          case ys of
+--      -- case xs of
+--      --   SOP (SOP.Z SOP.Nil) -> VOption Nothing
+--      --   SOP (SOP.S xs') -> VOption $ Just $
+--      --     toValue' @instr @t' (SOP xs')
+--    STList _t ->
+--      case xs of
+--        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
+--        SOP (SOP.S ys) ->
+--          case ys of
+--    STSet _ct ->
+--      case xs of
+--        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
+--        SOP (SOP.S ys) ->
+--          case ys of
+--    STOperation ->
+--      case xs of
+--        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
+--        SOP (SOP.S ys) ->
+--          case ys of
+--    STContract _t ->
+--      case xs of
+--        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
+--        SOP (SOP.S ys) ->
+--          case ys of
+--    STPair _a _b ->
+--      case xs of
+--        SOP (SOP.Z ((SOP.:*) ys ((SOP.:*) zs SOP.Nil))) ->
+--          VPair (ys, zs)
+--        SOP (SOP.S ys) ->
+--          case ys of
+--    STOr _a _b ->
+--      case xs of
+--        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) ->
+--          VOr $ Left ys
+--        SOP (SOP.S (SOP.Z ((SOP.:*) ys SOP.Nil))) ->
+--          VOr $ Right ys
+--        SOP (SOP.S (SOP.S ys)) ->
+--          case ys of
+--      -- _ a b
+--    STLambda _a _b ->
+--      case xs of
+--        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
+--        SOP (SOP.S ys) ->
+--          case ys of
+--    STMap _a _b ->
+--      case xs of
+--        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
+--        SOP (SOP.S ys) ->
+--          case ys of
+--    STBigMap _a _b ->
+--      case xs of
+--        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
+--        SOP (SOP.S ys) ->
+--          case ys of
 
-instance HasDeep T (Value' Instr) where
-  type DCode (t :: T) = TCode t
-  singDCode = singTCode
-  toD = toValue'
-  fromD = fromValue'
-
--- | `DCode` for `T`
-type family TCode (t :: T) :: [[T]] where
-  TCode ('Tc ct) = '[ '[ 'Tc ct]]
-  TCode ('TKey) = '[ '[ 'TKey]]
-  TCode ('TUnit) = '[ '[]] -- empty product
-  TCode ('TSignature) = '[ '[ 'TSignature]]
-  TCode ('TChainId) = '[ '[ 'TChainId]]
-  TCode ('TOption t) = '[ '[ 'TOption t]] -- TCode ('TOption t) = '[] ': TCode t
-  TCode ('TList t) = '[ '[ 'TList t]]
-  TCode ('TSet ct) = '[ '[ 'TSet ct]]
-  TCode ('TOperation) = '[ '[ 'TOperation]]
-  TCode ('TContract t) = '[ '[ 'TContract t]]
-  TCode ('TPair a b) = '[ '[a, b]] -- TCode a ** TCode b -- cartesian product
-  TCode ('TOr a b) = '[ '[a], '[b]] -- TCode a ++ TCode b
-  TCode ('TLambda a b) = '[ '[ 'TLambda a b]]
-  TCode ('TMap a b) = '[ '[ 'TMap a b]]
-  TCode ('TBigMap a b) = '[ '[ 'TBigMap a b]]
-
--- | `TCode` preserves `Sing`
-singTCode :: forall (t :: T). Sing t -> Sing (TCode t)
-singTCode (STc ct) = SCons (SCons (STc ct) SNil) SNil
-singTCode STKey = SCons (SCons STKey SNil) SNil
-singTCode STUnit = SCons SNil SNil
-singTCode STSignature = SCons (SCons STSignature SNil) SNil
-singTCode STChainId = SCons (SCons STChainId SNil) SNil
-singTCode (STOption st) = SCons (SCons (STOption st) SNil) SNil
-singTCode (STList st) = SCons (SCons (STList st) SNil) SNil
-singTCode (STSet st) = SCons (SCons (STSet st) SNil) SNil
-singTCode STOperation = SCons (SCons STOperation SNil) SNil
-singTCode (STContract st) = SCons (SCons (STContract st) SNil) SNil
-singTCode (STPair st su) = SCons (SCons st (SCons su SNil)) SNil
-singTCode (STOr st su) = SCons (SCons st SNil) (SCons (SCons su SNil) SNil)
-singTCode (STLambda st su) = SCons (SCons (STLambda st su) SNil) SNil
-singTCode (STMap st su) = SCons (SCons (STMap st su) SNil) SNil
-singTCode (STBigMap st su) = SCons (SCons (STBigMap st su) SNil) SNil
-
--- | Conversion from a shallow `SOP` of `Value'` to `Value'`.
---
--- See `fromValue'`
-toValue' :: forall instr t. Sing t -> SOP (Value' instr) (TCode t) -> Value' instr t
-toValue' st xs =
-  case st of
-    STc _ct ->
-      case xs of
-        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
-        SOP (SOP.S ys) ->
-          case ys of
-    STKey ->
-      case xs of
-        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
-        SOP (SOP.S ys) ->
-          case ys of
-    STUnit ->
-      case xs of
-        SOP (SOP.Z SOP.Nil) -> VUnit
-        SOP (SOP.S ys) ->
-          case ys of
-    STSignature ->
-      case xs of
-        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
-        SOP (SOP.S ys) ->
-          case ys of
-    STChainId ->
-      case xs of
-        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
-        SOP (SOP.S ys) ->
-          case ys of
-    STOption (_ :: Sing t') ->
-      case xs of
-        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
-        SOP (SOP.S ys) ->
-          case ys of
-      -- case xs of
-      --   SOP (SOP.Z SOP.Nil) -> VOption Nothing
-      --   SOP (SOP.S xs') -> VOption $ Just $
-      --     toValue' @instr @t' (SOP xs')
-    STList _t ->
-      case xs of
-        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
-        SOP (SOP.S ys) ->
-          case ys of
-    STSet _ct ->
-      case xs of
-        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
-        SOP (SOP.S ys) ->
-          case ys of
-    STOperation ->
-      case xs of
-        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
-        SOP (SOP.S ys) ->
-          case ys of
-    STContract _t ->
-      case xs of
-        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
-        SOP (SOP.S ys) ->
-          case ys of
-    STPair _a _b ->
-      case xs of
-        SOP (SOP.Z ((SOP.:*) ys ((SOP.:*) zs SOP.Nil))) ->
-          VPair (ys, zs)
-        SOP (SOP.S ys) ->
-          case ys of
-    STOr _a _b ->
-      case xs of
-        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) ->
-          VOr $ Left ys
-        SOP (SOP.S (SOP.Z ((SOP.:*) ys SOP.Nil))) ->
-          VOr $ Right ys
-        SOP (SOP.S (SOP.S ys)) ->
-          case ys of
-      -- _ a b
-    STLambda _a _b ->
-      case xs of
-        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
-        SOP (SOP.S ys) ->
-          case ys of
-    STMap _a _b ->
-      case xs of
-        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
-        SOP (SOP.S ys) ->
-          case ys of
-    STBigMap _a _b ->
-      case xs of
-        SOP (SOP.Z ((SOP.:*) ys SOP.Nil)) -> ys
-        SOP (SOP.S ys) ->
-          case ys of
-
--- | Conversion from `Value'` to a shallow `SOP` representation:
--- only the uppermost layer of sums and products are converted to
--- a `SOP` form.
-fromValue' :: forall instr t. Sing t -> Value' instr t -> SOP (Value' instr) (TCode t)
-fromValue' st (VC xs) =
-  case st of
-    STc _ct -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ VC xs
-fromValue' st (VKey xs) =
-  case st of
-    STKey -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VKey xs)
-fromValue' st (VUnit) =
-  case st of
-    STUnit -> SOP $ SOP.Z $ SOP.Nil
-fromValue' st (VSignature xs) =
-  case st of
-    STSignature -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VSignature xs)
-fromValue' st (VChainId xs) =
-  case st of
-    STChainId -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VChainId xs)
-fromValue' st (VOption xs) =
-  case st of
-    STOption _st ->
-      SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VOption xs)
-  -- case xs of
-  --   Nothing ->
-  --     SOP $ SOP.Z $ SOP.Nil
-  --   Just xs' ->
-  --     case st of
-  --       STOption _st ->
-  --         case fromValue' xs' of
-  --           SOP ys ->
-  --             SOP $ SOP.S ys
-fromValue' st (VList xs) =
-  case st of
-    (STList _t) -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VList xs)
-fromValue' st (VSet xs) =
-  case st of
-    (STSet _t) -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VSet xs)
-fromValue' st (VOp xs) =
-  case st of
-    STOperation -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VOp xs)
-fromValue' st (VContract addr xs) =
-  case st of
-    (STContract _p) -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VContract addr xs)
-fromValue' st (VPair (xs, ys)) =
-  case st of
-    STPair _sl _sr ->
-      SOP (SOP.Z ((SOP.:*) xs ((SOP.:*) ys SOP.Nil)))
-fromValue' st (VOr xs) =
-  case st of
-    STOr _stl _str ->
-      case xs of
-        Left ys ->
-          SOP (SOP.Z ((SOP.:*) ys SOP.Nil))
-        Right ys ->
-          SOP (SOP.S (SOP.Z ((SOP.:*) ys SOP.Nil)))
-fromValue' st (VLam xs) =
-  case st of
-    (STLambda _inp _out) -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VLam xs)
-fromValue' st (VMap xs) =
-  case st of
-    (STMap _k _v) -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VMap xs)
-fromValue' st (VBigMap xs) =
-  case st of
-    (STBigMap _k _v) -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VBigMap xs)
+---- | Conversion from `Value'` to a shallow `SOP` representation:
+---- only the uppermost layer of sums and products are converted to
+---- a `SOP` form.
+--fromValue' :: forall instr t. Sing t -> Value' instr t -> SOP (Value' instr) (TCode t)
+--fromValue' st (VC xs) =
+--  case st of
+--    STc _ct -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ VC xs
+--fromValue' st (VKey xs) =
+--  case st of
+--    STKey -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VKey xs)
+--fromValue' st (VUnit) =
+--  case st of
+--    STUnit -> SOP $ SOP.Z $ SOP.Nil
+--fromValue' st (VSignature xs) =
+--  case st of
+--    STSignature -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VSignature xs)
+--fromValue' st (VChainId xs) =
+--  case st of
+--    STChainId -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VChainId xs)
+--fromValue' st (VOption xs) =
+--  case st of
+--    STOption _st ->
+--      SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VOption xs)
+--  -- case xs of
+--  --   Nothing ->
+--  --     SOP $ SOP.Z $ SOP.Nil
+--  --   Just xs' ->
+--  --     case st of
+--  --       STOption _st ->
+--  --         case fromValue' xs' of
+--  --           SOP ys ->
+--  --             SOP $ SOP.S ys
+--fromValue' st (VList xs) =
+--  case st of
+--    (STList _t) -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VList xs)
+--fromValue' st (VSet xs) =
+--  case st of
+--    (STSet _t) -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VSet xs)
+--fromValue' st (VOp xs) =
+--  case st of
+--    STOperation -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VOp xs)
+--fromValue' st (VContract addr xs) =
+--  case st of
+--    (STContract _p) -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VContract addr xs)
+--fromValue' st (VPair (xs, ys)) =
+--  case st of
+--    STPair _sl _sr ->
+--      SOP (SOP.Z ((SOP.:*) xs ((SOP.:*) ys SOP.Nil)))
+--fromValue' st (VOr xs) =
+--  case st of
+--    STOr _stl _str ->
+--      case xs of
+--        Left ys ->
+--          SOP (SOP.Z ((SOP.:*) ys SOP.Nil))
+--        Right ys ->
+--          SOP (SOP.S (SOP.Z ((SOP.:*) ys SOP.Nil)))
+--fromValue' st (VLam xs) =
+--  case st of
+--    (STLambda _inp _out) -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VLam xs)
+--fromValue' st (VMap xs) =
+--  case st of
+--    (STMap _k _v) -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VMap xs)
+--fromValue' st (VBigMap xs) =
+--  case st of
+--    (STBigMap _k _v) -> SOP $ SOP.Z $ (SOP.:* SOP.Nil) $ (VBigMap xs)
 
 
 

@@ -2,9 +2,10 @@
 
 module Main where
 
-import Control.Monad
-import System.IO
+import System.IO (IO)
+
+import Michelson.Typed.EntryPoints.Sing.Alg.OptParse
 
 main :: IO ()
-main = return ()
+main = parsePrintValueFromContract
 

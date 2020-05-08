@@ -1,4 +1,6 @@
-{-# OPTIONS -Wno-missing-monadfail-instances #-}
+{-# LANGUAGE NoRebindableSyntax #-}
+
+-- {-# OPTIONS -Wno-missing-monadfail-instances #-}
 {-# OPTIONS -Wno-unused-do-bind -Wno-orphans -Wno-missing-export-lists #-}
 
 module Lorentz.Contracts.Util where
@@ -75,7 +77,7 @@ readAddressP =
         ensureAddressPrefix
         addressStr <- P.munch1 isAlphaNum
         case parseAddress $ T.pack addressStr of
-          Left err -> fail $ show err
+          Left err -> fail . ("readAddressP: " ++) $ show err
           Right address' -> return address'
   where
     ensureAddressPrefix =
@@ -124,7 +126,7 @@ instance Read PublicKey where
     maybeInQuotesP $ do
       eNonQuoteChars <- parsePublicKey . T.pack <$> P.munch1 isAlphaNum
       case eNonQuoteChars of
-        Left err -> fail $ show err
+        Left err -> fail . ("Read PublicKey: " ++) $ show err
         Right res -> return res
 
 -- instance Read SecretKey where
@@ -140,7 +142,7 @@ instance Read Signature where
     maybeInQuotesP $ do
       eNonQuoteChars <- parseSignature . T.pack <$> P.munch1 isAlphaNum
       case eNonQuoteChars of
-        Left err -> fail $ show err
+        Left err -> fail . ("Read Signature: " ++) $ show err
         Right res -> return res
 
 -- | Since `Ed25519.PublicKey` doesn't expose
