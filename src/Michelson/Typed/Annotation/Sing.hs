@@ -115,9 +115,6 @@ data instance Sing :: Annotated a t -> Type where
   SATMap       :: forall a t (ta :: a) (tb :: a) (xs :: Annotated a t). Sing ta -> Sing tb -> Sing xs -> Sing ('ATMap ta tb xs)
   SATBigMap    :: forall a t (ta :: a) (tb :: a) (xs :: Annotated a t). Sing ta -> Sing tb -> Sing xs -> Sing ('ATBigMap ta tb xs)
 
--- instance SingI ta => SingI ('ATc ta) where
---   sing = SATc sing
-
 
 instance (SingI ta) => SingI ('ATc ta) where
   sing = SATc sing
@@ -293,40 +290,3 @@ instance SingKind a => SingKind (Annotated a t) where
         SomeSing $
         SATBigMap sta stb sxs
 
-
-{-
--- | Type to tag custom implementation of `EntryPointsDerivation`
-data EpdCustom
-
--- | List is always empty
-type family AnnotationEntryPoints (ann :: Annotated Symbol t) :: [(Symbol, Type)] where
-  AnnotationEntryPoints _ = '[]
-
--- | Lookup always fails
-type family AnnotationLookupEntryPoint (ann :: Annotated Symbol t) :: Symbol -> Exp (Maybe Type) where
-  AnnotationLookupEntryPoint _ = Fcf.ConstFn 'Nothing
-
--- | This allows EntryPoint annotations to be provided dynamically at run time.
---
--- Note: `EpdAllEntryPoints` is empty and lookup always fails. This just implements `epdNotes`
-instance SingI ann => EntryPointsDerivation EpdCustom (AnnotatedParam t ann) where
-  type EpdAllEntryPoints EpdCustom (AnnotatedParam t ann) = AnnotationEntryPoints ann
-  type EpdLookupEntryPoint EpdCustom (AnnotatedParam t ann) = AnnotationLookupEntryPoint ann
-  epdNotes = annotatedToNotes (fromSing (sing @ann))
-
-  epdCall _ = EpConstructionFailed
-
-instance (NiceParameter (Value t), SingI ann) => ParameterHasEntryPoints (AnnotatedParam t ann) where
-  type ParameterEntryPointsDerivation (AnnotatedParam t ann) = EpdCustom
-
--- | A parameter that can be annotated at the type level, allowing
--- `Notes` to be provided as a value at runtime and resolved
--- to a `ParameterHasEntryPoints` instance
-data AnnotatedParam (t :: T) (ann :: Annotated Symbol t) where
-  AnnotatedParam :: Value t -> AnnotatedParam t ann
-
-instance IsoValue (AnnotatedParam t ann) where
-  type ToT (AnnotatedParam t ann) = t
-  toVal (AnnotatedParam xs) = xs
-  fromVal = AnnotatedParam
--}

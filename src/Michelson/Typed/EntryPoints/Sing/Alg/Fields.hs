@@ -8,10 +8,7 @@ import Data.Kind
 import Data.Functor.Classes
 import Text.Show
 import GHC.Generics ((:.:)(..))
-import Prelude hiding (All, unwords, show, set)
-
-import Data.SOP.Map
-import qualified Data.SOP.Map as SOP
+import Prelude hiding (Map, All, unwords, show, set)
 
 import Michelson.Typed.Annotation.Path
 
@@ -32,7 +29,7 @@ import Data.Singletons.Prelude.List
 import Data.Constraint
 
 
-type EpFieldTs (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) = SOP.Map (EpFieldTSym t ann epPath) (EpFieldNames ann epPath)
+type EpFieldTs (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) = Map (EpFieldTSym3 t ann epPath) (EpFieldNames ann epPath)
 
 singEpFieldTs :: forall (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). (SingI t, SingI ann, SingI epPath)
   => Sing t
@@ -40,7 +37,7 @@ singEpFieldTs :: forall (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). (SingI
   -> Sing epPath
   -> Sing (EpFieldTs t ann epPath)
 singEpFieldTs _st sann sepPath =
-  singMap @(EpFieldTSym t ann epPath) $
+  sMap (sing @(EpFieldTSym3 t ann epPath)) $
   sEpFieldNames sann sepPath
 
 data EpFields (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) where
@@ -166,62 +163,4 @@ lensEpFields st sann sepPath fs xs =
     npWrappedSing $
     sEpFieldNames sann sepPath
   )
-
--- setEpFields :: forall f (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). (MonadFail f)
---   => Sing t
---   -> Sing ann
---   -> Sing epPath
---   -> EpFields f t ann epPath
---   -> ValueAlg t
---   -> f (ValueAlg t)
--- setEpFields st sann sepPath (EpFields _ xs) xss =
---   unComp1 $
---   flip appEndo (Comp1 $ return xss) $
---   withDict1 st $
---   withDict1 sann $
---   withDict1 sepPath $
---   withDict (singAllSingI $ sEpFieldNames sann sepPath) $
---   SOP.hcfoldMap
---     (Proxy @SingI)
---     (\(EpField sfieldName ys) -> Endo $ \yss ->
---       setEpFieldT st sann sepPath sfieldName ys yss
---     )
---     xs
-
--- settEpFields :: forall f (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). (Alternative f, MonadFail f)
---   => Sing t
---   -> Sing ann
---   -> Sing epPath
---   -> EpFields f t ann epPath
---   -> ValueAlgT f t
---   -> ValueAlgT f t
--- settEpFields st sann sepPath (EpFields _ xs) xss =
---   flip appEndo xss $
---   withDict1 st $
---   withDict1 sann $
---   withDict1 sepPath $
---   withDict (singAllSingI $ sEpFieldNames sann sepPath) $
---   SOP.hcfoldMap
---     (Proxy @SingI)
---     (\(EpField sfieldName ys) -> Endo $ \yss ->
---       settEpFieldT st sann sepPath sfieldName ys yss
---     )
---     xs
-
--- getEpFields :: forall (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). ()
---   => Sing t
---   -> Sing ann
---   -> Sing epPath
---   -> ValueAlg t
---   -> EpFields Maybe t ann epPath
--- getEpFields st sann sepPath xss =
---   withDict (singAllSingI $ sEpFieldNames sann sepPath) $
---   EpFields sepPath $
---   SOP.hcmap
---     (Proxy @SingI)
---     (\(WrapSing sfieldName) ->
---       EpField sfieldName $ getEpFieldT st sann sepPath sfieldName $ Comp1 . return $ xss
---     ) $
---   npWrappedSing $
---   sEpFieldNames sann sepPath
 

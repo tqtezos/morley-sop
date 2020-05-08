@@ -70,40 +70,7 @@ instance ToJSON (Path Text) where
 
 -- instance FromJSON a => FromJSON (Path a)
 
--- data instance Sing :: Path a -> Type where
---   (:**) :: Sing xs -> Sing ys -> Sing (xs ':* ys)
---   (:++) :: Sing x -> Sing xs -> Sing (x ':+ xs)
---   SHere :: Sing 'Here
-
--- instance (SingI xs, SingI ys) => SingI (xs ':* ys) where
---   sing = sing :** sing
-
--- instance (SingI x, SingI xs) => SingI (x ':+ xs) where
---   sing = sing :++ sing
-
--- instance SingI 'Here where
---   sing = SHere
-
--- instance SingKind a => SingKind (Path a) where
---   type Demote (Path a) = Path (Demote a)
-
---   fromSing ((:**) sxs sys) = fromSing sxs :* fromSing sys
---   fromSing ((:++) sx sxs) = fromSing sx :+ fromSing sxs
---   fromSing SHere = Here
-
---   toSing ((:*) xs ys) =
---     case (toSing xs, toSing ys) of
---       (SomeSing sxs, SomeSing sys) -> SomeSing $ sxs :** sys
---   toSing ((:+) x xs) =
---     case (toSing x, toSing xs) of
---       (SomeSing sx, SomeSing sxs) -> SomeSing $ sx :++ sxs
---   toSing Here = SomeSing SHere
-
--- $(genDefunSymbols [''Path])
--- $(genPromotions [''Path])
-
 $(genSingletons [''Path])
--- $(promoteShowInstance ''Path)
 $(singShowInstance ''Path)
 
 singIPath :: forall a (xs :: Path a). (forall (x :: a). Sing x -> Dict (SingI x)) -> Sing xs -> Dict (SingI xs)

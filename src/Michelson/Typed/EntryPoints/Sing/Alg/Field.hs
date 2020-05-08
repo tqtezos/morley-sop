@@ -12,7 +12,6 @@ import GHC.TypeLits (Symbol)
 import GHC.Generics ((:.:)(..))
 import Text.Show
 
-import Data.SOP.Map
 import Data.Either.Run
 import Data.Either.Run.ErrorMessage
 
@@ -52,12 +51,6 @@ npWrappedSing sxs =
     wrapSing :: forall x. SingI x => WrappedSing x
     wrapSing = WrapSing sing
 
--- EpFieldTSym is defined in: src/Michelson/Typed/EntryPoints/Sing/Alg/Types.hs
-instance forall (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). (SingI t, SingI ann, SingI epPath) => HasMap (EpFieldTSym t ann epPath) Symbol where
-  type Mapper (EpFieldTSym t ann epPath) (xs :: Symbol) = EpFieldT t ann epPath xs
-  singMapper = sEpFieldT (sing @t) (sing @ann) (sing @epPath)
-
-
 data EpField (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol) where
   EpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). ()
     => Sing fieldName
@@ -68,7 +61,6 @@ instance (forall t'. SingI t' => Show (f (ValueOpq t')), SingI t, SingI ann, Sin
   showsPrec d (EpField sfieldName xs) =
     withDict1 (sEpFieldT (sing @t) (sing @ann) (sing @epPath) sfieldName) $
     showsBinaryWith showsPrec showsPrec "EpField" d (fromSing sfieldName) xs
-
 
 -- transEpField :: forall (f :: Type -> Type) (g :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). ()
 --   => (forall x. f x -> g x)
@@ -133,8 +125,4 @@ transEpField trans' st sann sepPath (EpField sfieldName xs) =
   case (sEpFieldT st sann sepPath sfieldName, xs) of
     (SLeft _, RunLeft xss) -> RunLeft xss
     (SRight st', RunRight (Comp1 xss)) -> withDict1 st' $ RunRight $ Comp1 $ trans' xss
-
-
-
-
 

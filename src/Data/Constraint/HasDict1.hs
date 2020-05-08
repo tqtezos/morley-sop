@@ -51,20 +51,3 @@ instance (HasDict1 a, HasDict1 b) => HasDict1 (Either a b) where
     withDict (evidence1 xs) $
     Dict
 
--- -- | Warning: not total; fails on `SShowType`
--- instance HasDict1 (ErrorMessage' Symbol) where
---   evidence1 (SText xs) =
---     withDict (evidence1 xs) $
---     Dict
---   evidence1 (SShowType xs) = error "evidence1 (SShowType _)"
---     -- withDict (evidence1 xs) $
---     -- Dict
---   evidence1 ((:%<>:) xs ys) =
---     withDict (evidence1 xs) $
---     withDict (evidence1 ys) $
---     Dict
---   evidence1 ((:%$$:) xs ys) =
---     withDict (evidence1 xs) $
---     withDict (evidence1 ys) $
---     Dict
-

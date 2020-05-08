@@ -157,12 +157,6 @@ pureValueAlgT f (STPair ta tb) = VTPair (pureValueAlgT f ta, pureValueAlgT f tb)
 pureValueAlgT f (STOr ta tb) = VTOr (pureValueAlgT f ta, pureValueAlgT f tb)
 pureValueAlgT f (STOpq _st) = VTOpq $ f Proxy
 
--- -- | `pureValueAlgT` using `empty` to provide instances of @f@
--- emptyValueAlgT :: forall instr f t. Alternative f
---   => Sing t
---   -> ValueAlgT' instr f t
--- emptyValueAlgT = pureValueAlgT $ const empty
-
 -- | `pureValueAlgT` using `fail` to provide instances of @f@
 failValueAlgT :: forall instr f t. MonadFail f
   => String

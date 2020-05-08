@@ -100,19 +100,6 @@ instance HasDict1 a => HasDict1 (AnnotatedAlg a t) where
   evidence1 = singIAnnotatedAlg evidence1
 
 
-
--- ToAnnotatedAlg (t :: T) (ann :: Annotated a t) :: AnnotatedAlg a (ToTAlg t)
---
--- FromAnnotatedAlg (t :: TAlg) (ann :: AnnotatedAlg a t) :: Annotated a (FromTAlg t)
---
--- fromToAnnotatedAlg :: Sing t -> Sing ann -> FromAnnotatedAlg (ToTAlg t) (ToAnnotatedAlg t ann) :~: ann
---
---
--- ATPair _ ta tb xs ys -> ATPair _ ta tb (add type
---
--- TPair _ ta tb (TOpq _) (_ ) -> TPair _ ta tb
-
-
 $(singletonsOnly [d|
 
   -- | `TOpq` always has a `TypeAnn`
@@ -187,41 +174,6 @@ type ExampleTAnn
 exampleFieldToTypeAnn :: String
 exampleFieldToTypeAnn = show . fromSing $ sFieldToTypeAnn @Symbol @ExampleTAlg (sing @ExampleTAnn)
 
-
-
--- -- | `TOpq` always has a `TypeAnn`
--- type family TOpqTypeAnn (ann :: AnnotatedOpq a t) :: a where
---   TOpqTypeAnn ('ATc ta) = ta
---   TOpqTypeAnn ('ATKey ta) = ta
---   TOpqTypeAnn ('ATUnit ta) = ta
---   TOpqTypeAnn ('ATSignature ta) = ta
---   TOpqTypeAnn ('ATChainId ta) = ta
---   TOpqTypeAnn ('ATOption ta _) = ta
---   TOpqTypeAnn ('ATList ta _) = ta
---   TOpqTypeAnn ('ATSet ta _) = ta
---   TOpqTypeAnn ('ATOperation ta) = ta
---   TOpqTypeAnn ('ATContract ta _) = ta
---   TOpqTypeAnn ('ATLambda ta _ _) = ta
---   TOpqTypeAnn ('ATMap ta _ _) = ta
---   TOpqTypeAnn ('ATBigMap ta _ _) = ta
---
--- -- | Lift `TOpqTypeAnn` over `Sing`
--- singTOpqTypeAnn :: forall a t (ann :: AnnotatedOpq a t). Sing ann -> Sing (TOpqTypeAnn ann)
--- singTOpqTypeAnn (SATc ta) = ta
--- singTOpqTypeAnn (SATKey ta) = ta
--- singTOpqTypeAnn (SATUnit ta) = ta
--- singTOpqTypeAnn (SATSignature ta) = ta
--- singTOpqTypeAnn (SATChainId ta) = ta
--- singTOpqTypeAnn (SATOption ta _) = ta
--- singTOpqTypeAnn (SATList ta _) = ta
--- singTOpqTypeAnn (SATSet ta _) = ta
--- singTOpqTypeAnn (SATOperation ta) = ta
--- singTOpqTypeAnn (SATContract ta _) = ta
--- singTOpqTypeAnn (SATLambda ta _ _) = ta
--- singTOpqTypeAnn (SATMap ta _ _) = ta
--- singTOpqTypeAnn (SATBigMap ta _ _) = ta
-
-
 type family ToAnnotatedAlg (ann :: Annotated a t) :: AnnotatedAlg a (ToTAlg t) where
   ToAnnotatedAlg ('Michelson.ATc ta) = 'ATOpq ('ATc ta)
   ToAnnotatedAlg ('Michelson.ATKey ta) = 'ATOpq ('ATKey ta)
@@ -255,12 +207,4 @@ singToAnnotatedAlg (Michelson.SATOr ta tb tc xs ys) = (SATOr ta tb tc (singToAnn
 singToAnnotatedAlg (Michelson.SATLambda ta xs ys) = SATOpq (SATLambda ta xs ys)
 singToAnnotatedAlg (Michelson.SATMap ta tb xs) = SATOpq (SATMap ta tb xs)
 singToAnnotatedAlg (Michelson.SATBigMap ta tb xs) = SATOpq (SATBigMap ta tb xs)
-
-
--- return []
--- $(promoteShowInstance ''AnnotatedOpq) -- , ''AnnotatedAlg])
--- $(genPromotions [''AnnotatedOpq, ''AnnotatedAlg])
--- $(promoteShowInstance ''AnnotatedOpq) -- , ''AnnotatedAlg])
-
--- instance
 

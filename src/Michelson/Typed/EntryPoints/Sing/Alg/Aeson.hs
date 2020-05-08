@@ -143,20 +143,3 @@ demoJSON =
   forM_ exampleJSON $
   BL.putStrLn.encodePretty
 
-
--- getEpValueF :: forall (t :: TAlg) (ann :: SymAnn t). ()
---   => Sing t
---   -> Sing ann
---   -> ValueAlg t
---   -> EpValueF Maybe t ann
-
--- annotatedFromNotes :: Notes t -> Annotated Text t
-
--- getEpValueF :: forall (t :: TAlg) (ann :: SymAnn t). ()
---   => Sing t
---   -> Sing ann
---   -> ValueAlg t
---   -> EpValueF Maybe t ann
-
-
-

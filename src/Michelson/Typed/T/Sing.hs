@@ -5,36 +5,17 @@
 module Michelson.Typed.T.Sing where
 
 import Prelude (($))
--- import Data.Foldable
--- import Data.Maybe
--- import Data.Either
--- import Data.Functor
--- import Data.Kind
--- import Data.Traversable
 import Data.Typeable
--- import GHC.TypeLits
--- import Data.Ord
 
--- import Michelson.Typed.Haskell
--- import Michelson.Typed.Value
--- import Michelson.Typed.Instr (Instr)
 import Michelson.Typed.Sing
 import Michelson.Typed.T
--- import Michelson.Typed.Aliases
 
 import Data.Constraint
 import Data.Singletons
 import Data.Singletons.Prelude
 import Data.Singletons.TH
--- import Data.Singletons.Prelude.List (Sing(..)) -- SCons, SNil)
--- import Data.SOP (SOP(..)) -- , NS(..), NP(..), I(..), All, SListI, SListI2)
--- import qualified Data.SOP as SOP
--- import Generics.SOP (Generic(..))
 
 import Data.Constraint.HasDict1
--- import Data.SOP.Deep
--- import Data.SOP.Deep.Annotated
--- import Data.SOP.Deep.Annotated.Test
 
 
 -- | `HasDict1` for `CT`

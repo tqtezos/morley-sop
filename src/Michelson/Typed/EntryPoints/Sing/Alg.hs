@@ -68,55 +68,6 @@ transEpValueF trans' st sann (EpValueF xs) =
   EpValueF $
   SOP.hmap (transEpFields trans' st sann) xs
 
-
--- setEpValueF :: forall f (t :: TAlg) (ann :: SymAnn t). (MonadFail f)
---   => Sing t
---   -> Sing ann
---   -> EpValueF f t ann
---   -> ValueAlg t
---   -> f (ValueAlg t)
--- setEpValueF st sann (EpValueF xs) xss =
---   flip appEndo (return xss) $
---   withDict (singAllSingI $ sEpPaths sann) $
---   SOP.hcfoldMap
---     (Proxy @SingI)
---     (\ys@(EpFields sepPath _) -> Endo $
---       (>>= setEpFields st sann sepPath ys)
---     )
---     xs
---
--- settEpValueF :: forall f (t :: TAlg) (ann :: SymAnn t). (Alternative f, MonadFail f)
---   => Sing t
---   -> Sing ann
---   -> EpValueF f t ann
---   -> ValueAlgT f t
---   -> ValueAlgT f t
--- settEpValueF st sann (EpValueF xs) xss =
---   flip appEndo xss $
---   withDict (singAllSingI $ sEpPaths sann) $
---   SOP.hcfoldMap
---     (Proxy @SingI)
---     (\ys@(EpFields sepPath _) -> Endo $
---       settEpFields st sann sepPath ys
---     )
---     xs
---
--- getEpValueF :: forall f (t :: TAlg) (ann :: SymAnn t). (f ~ Maybe)
---   => Sing t
---   -> Sing ann
---   -> ValueAlg t
---   -> EpValueF f t ann
--- getEpValueF st sann xs =
---   withDict (singAllSingI $ sEpPaths sann) $
---   EpValueF $
---   SOP.hcmap
---     (Proxy @SingI)
---     (\(WrapSing sfieldName) ->
---       getEpFields st sann sfieldName xs
---     ) $
---   npWrappedSing $
---   sEpPaths sann
-
 lensEpValueF :: forall f (t :: TAlg) (ann :: SymAnn t). (Alternative f, MonadFail f)
   => Sing t
   -> Sing ann
@@ -141,7 +92,6 @@ lensEpValueF st sann fs xs =
     npWrappedSing $
     sEpPaths sann
   )
-
 
 npToNS :: forall a (f :: Type -> Type) (g :: a -> Type) (xs :: [a]). (Alternative f, MonadFail f)
   => NP (f :.: g) xs

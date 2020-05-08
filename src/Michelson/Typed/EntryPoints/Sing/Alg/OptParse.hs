@@ -10,7 +10,6 @@ import Control.Monad hiding (fail)
 import Control.Monad.Fail
 import Data.Kind
 import Data.Either
-import Data.Functor.Classes
 import Data.List (isInfixOf)
 import Data.String
 import Data.Type.Equality
@@ -66,10 +65,6 @@ import qualified Data.Text.Lazy.IO as TL
 traceShow' :: Show a => a -> b -> b
 traceShow' = trace . fromString . ("\n" <>) . show
 -- flip const
-
--- instance str ~ String => MonadFail (Either str) where
---   fail = Left
-
 
 parseRunEither :: forall a b (f :: a -> Type) (g :: b -> Type) (xs :: Either a b). (HasDict1 a, HasDict1 b, SingI xs)
   => (forall (x :: a). SingI x => Parser (f x))
@@ -165,9 +160,9 @@ parseEpValue =
   -- (fromSing $ sEpPaths (sing @ann)) $ parseNS @_ @_ @_ @(EpPaths ann) (flip option mempty . readerError) (hsubparser (parseEpFields @AltError @t @ann))) $ -- ) `displayS` "") $
   EpValue <$>
   parseNS (fmap (error "impossible") . flip abortOption mempty . ErrorMsg) (hsubparser parseEpFields) -- readerError
-  where
-    isHelpLine =
-      liftM2 (||) ("Available options" `isInfixOf`) ("-h,--help" `isInfixOf`)
+  -- where
+  --   isHelpLine =
+  --     liftM2 (||) ("Available options" `isInfixOf`) ("-h,--help" `isInfixOf`)
 
 parseValue :: forall t (ann :: SymAnn t). (SingI t, SingI ann)
   => (String, Parser (AltError (Value (FromTAlg t))))
