@@ -12,14 +12,16 @@ import GHC.TypeLits (Symbol)
 import GHC.Generics ((:.:)(..))
 import Text.Show
 
-import Data.Either.Run
-import Data.Either.Run.ErrorMessage
+import Control.AltError
+import Data.AltError
+import Data.AltError.Run
 
 import Michelson.Typed.Annotation.Path
 
 import Michelson.Typed.T.Alg
 import Michelson.Typed.Value.Free
 import Michelson.Typed.EntryPoints.Sing.Alg.Types
+import Michelson.Typed.EntryPoints.Sing.Alg.Lens
 import Data.Constraint.HasDict1
 import Data.Singletons.WrappedSing
 
@@ -27,7 +29,6 @@ import Data.SOP (I(..), All, NP)
 import qualified Data.SOP as SOP
 import Data.Singletons
 import Data.Singletons.Prelude.List hiding (All)
-import Data.Singletons.Prelude.Either
 import Data.Constraint
 
 
@@ -54,7 +55,7 @@ npWrappedSing sxs =
 data EpField (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol) where
   EpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). ()
     => Sing fieldName
-    -> RunEither SingError (f :.: ValueOpq) (EpFieldT t ann epPath fieldName)
+    -> RunSingValueOpq f (EpFieldT t ann epPath fieldName)
     -> EpField f t ann epPath fieldName
 
 instance (forall t'. SingI t' => Show (f (ValueOpq t')), SingI t, SingI ann, SingI epPath) => Show (EpField f t ann epPath fieldName) where
@@ -74,8 +75,9 @@ unwrapEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPat
 unwrapEpField (EpField sfieldName xs) =
   EpField sfieldName <$>
   case xs of
-    RunLeft ys -> pure $ RunLeft ys
-    RunRight (Comp1 ys) -> RunRight . Comp1 . I <$> ys
+    RunAltThrow ys -> pure $ RunAltThrow ys
+    RunAltExcept ys -> pure $ RunAltExcept ys
+    RunPureAltE (Comp1 ys) -> RunPureAltE . Comp1 . I <$> ys
 
 -- wrapEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). Applicative f
 --   => EpField I t ann epPath fieldName
@@ -84,7 +86,7 @@ unwrapEpField (EpField sfieldName xs) =
 --   EpField sfieldName $
 --   case xs of
 --     RunLeft ys -> RunLeft ys
---     RunRight (Comp1 (I ys)) -> RunRight . Comp1 $ pure ys
+--     RunPureAltE (Comp1 (I ys)) -> RunPureAltE . Comp1 $ pure ys
 
 wrapEpField' :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). (Functor f, SingI epPath, SingI fieldName)
   => Sing t
@@ -94,13 +96,14 @@ wrapEpField' :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath
 wrapEpField' st sann xs =
   EpField (sing @fieldName) $
   case sEpFieldT st sann (sing @epPath) (sing @fieldName) of
-    SLeft serr -> RunLeft $ SingError serr
-    SRight _sResult -> RunRight $ Comp1 $
+    SAltThrow serr -> RunAltThrow $ WrapSing serr
+    SAltExcept serr -> RunAltExcept $ WrapSing serr
+    SPureAltE _sResult -> RunPureAltE $ Comp1 $
       (\case
-         EpField _sfieldName xss -> SOP.unI $ unComp1 $ unRunRight xss
+         EpField _sfieldName xss -> SOP.unI $ unComp1 $ unRunPureAltE xss
       ) <$> xs
 
-emptyEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). MonadFail f
+emptyEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). AltError [String] f
   => Sing t
   -> Sing ann
   -> Sing epPath
@@ -109,8 +112,9 @@ emptyEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath
 emptyEpField st sann sepPath sfieldName =
   EpField sfieldName $
   case sEpFieldT st sann sepPath sfieldName of
-    SLeft serr -> RunLeft $ SingError serr
-    SRight sResult -> RunRight $ Comp1 . fail . ("emptyEpField SRight: " ++) . show $ fromSing sResult
+    SAltThrow serr -> RunAltThrow $ WrapSing serr
+    SAltExcept serr -> RunAltExcept $ WrapSing serr
+    SPureAltE sResult -> RunPureAltE $ Comp1 . altErr . ("emptyEpField SPureAltE: " :) . (: []) . show $ fromSing sResult
 
 
 transEpField :: forall (f :: Type -> Type) (g :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). ()
@@ -123,6 +127,7 @@ transEpField :: forall (f :: Type -> Type) (g :: Type -> Type) (t :: TAlg) (ann 
 transEpField trans' st sann sepPath (EpField sfieldName xs) =
   EpField sfieldName $
   case (sEpFieldT st sann sepPath sfieldName, xs) of
-    (SLeft _, RunLeft xss) -> RunLeft xss
-    (SRight st', RunRight (Comp1 xss)) -> withDict1 st' $ RunRight $ Comp1 $ trans' xss
+    (SAltThrow _, RunAltThrow xss) -> RunAltThrow xss
+    (SAltExcept _, RunAltExcept xss) -> RunAltExcept xss
+    (SPureAltE st', RunPureAltE (Comp1 xss)) -> withDict1 st' $ RunPureAltE $ Comp1 $ trans' xss
 

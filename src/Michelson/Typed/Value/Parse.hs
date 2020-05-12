@@ -51,18 +51,23 @@ parseTypeCheckValue label =
       ]
 
 -- | Parse `TypeCheck.SomeContract` from `T.Text`
-parseSomeContractRaw :: MonadFail m => T.Text -> m TypeCheck.SomeContract
-parseSomeContractRaw =
+parseSomeContractRaw :: Applicative f => (forall a. [String] -> f a) -> T.Text -> f TypeCheck.SomeContract
+parseSomeContractRaw fail' =
   either
-    (fail . ("parseSomeContractRaw" <>) . show)
-    (either (fail . ("parseSomeContractRaw" <>) . show) return . typeCheckContract mempty . expandContract) .
+    (fail' . ("parseSomeContractRaw" :) . (:[]) . show)
+    (either
+      (fail' . ("parseSomeContractRaw" :) . (:[]) . show)
+      pure .
+     typeCheckContract mempty .
+     expandContract
+    ) .
   parse program "input_contract"
 
 -- | `parseSomeContractRaw` as a `Opt.Parser`
-parseSomeContract :: Opt.Parser TypeCheck.SomeContract
-parseSomeContract =
+parseSomeContract :: (forall a. [String] -> Opt.ReadM a) -> Opt.Parser TypeCheck.SomeContract
+parseSomeContract fail' =
   Opt.argument
-    (Opt.str >>= parseSomeContractRaw) $
+    (Opt.str >>= parseSomeContractRaw fail') $
     mconcat
        [ Opt.metavar "Michelson Contract Source"
        , Opt.help "A Michelson contract's source code"

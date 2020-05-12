@@ -102,7 +102,7 @@ instance HasDict1 a => HasDict1 (AnnotatedAlg a t) where
 
 $(singletonsOnly [d|
 
-  -- | `TOpq` always has a `TypeAnn`
+  -- `TOpq` always has a `TypeAnn`
   tOpqTypeAnn :: forall a t. AnnotatedOpq a t -> a
   tOpqTypeAnn (ATc ta) = ta
   tOpqTypeAnn (ATKey ta) = ta
@@ -118,7 +118,7 @@ $(singletonsOnly [d|
   tOpqTypeAnn (ATMap ta _ _) = ta
   tOpqTypeAnn (ATBigMap ta _ _) = ta
 
-  -- | `TOpq` always has a `TypeAnn`: set it
+  -- `TOpq` always has a `TypeAnn`: set it
   setTypeAnn :: forall a t. a -> AnnotatedOpq a t -> AnnotatedOpq a t
   setTypeAnn as (ATc _ta) = ATc as
   setTypeAnn as (ATKey _ta) = ATKey as

@@ -4,12 +4,14 @@
 
 module Michelson.Typed.EntryPoints.Sing.Alg.Lens where
 
-import Control.Monad.Fail
-import Prelude hiding (fail, unwords, show)
+import Prelude hiding (unwords, unlines, show)
 import GHC.Generics ((:.:)(..))
 
-import Data.Either.Run
-import Data.Either.Run.ErrorMessage
+import Control.AltError
+import Data.AltError
+import Data.AltError.Run
+-- import Data.Either.Run
+-- import Data.Either.Run.ErrorMessage
 
 import Michelson.Typed.Annotation.Path
 import Michelson.Typed.EntryPoints.Error
@@ -18,70 +20,96 @@ import Michelson.Typed.Annotation.Sing.Alg
 import Michelson.Typed.T.Alg
 import Michelson.Typed.Value.Free
 import Michelson.Typed.EntryPoints.Sing.Alg.Types
+import Data.Singletons.WrappedSing
 
 import Data.Singletons
 import Data.Singletons.TypeLits
-import Data.Singletons.Prelude.Either
 import Data.Singletons.Prelude.Eq
 import Data.Singletons.Prelude.Bool
 import Data.Singletons.Prelude.List
+import Data.Singletons.Prelude.Show
 import qualified Data.Text as T
 
 -- TODO: try to remove Alternative, currently only lensEpFieldTFieldEq depends on it
 
+-- tt = _
 
-failSingValueAlgT :: forall f t (x :: Symbol). MonadFail f => Sing t -> Sing x -> ValueAlgT f t
-failSingValueAlgT st = flip failValueAlgT st . ("failSingValueAlgT: " ++) . T.unpack . fromSing
+-- | `unwrapSing` then `fromSing`, with `Text` to `String` conversion
+fromUnwrapSing :: forall (x :: [Symbol]). WrappedSing x -> [String]
+fromUnwrapSing = fmap (fromString . T.unpack) . fromSing . unwrapSing
 
-lensRunEitherAppendErrM :: forall f ta tb xs ys. (MonadFail f)
+type RunSingValueOpq f = RunAltE WrappedSing (f :.: ValueOpq)
+
+lensRunAltEAppendErrM :: forall f ta tb xs ys. AltError [String] f
   => Sing ta
   -> Sing tb
   -> Sing xs
   -> Sing ys
-  -> Lens' (ValueAlgT f ta) (RunEither SingError (f :.: ValueOpq) xs)
-  -> Lens' (ValueAlgT f tb) (RunEither SingError (f :.: ValueOpq) ys)
-  -> Lens' (ValueAlgT f ta, ValueAlgT f tb) (RunEither SingError (f :.: ValueOpq) (xs <+> ys))
-lensRunEitherAppendErrM ta tb (SLeft  sxs) (SLeft  sys) _fx _fy fs _xss =
-  fmap (liftM2 (,) (failSingValueAlgT ta) (failSingValueAlgT tb) . unSingError . unRunLeft) .
-  fs . RunLeft . SingError $
-  sUnlines $ SCons sxs $ SCons sys SNil
-lensRunEitherAppendErrM ta tb (SRight sxs) (SRight sys) _fx _fy fs _xss =
-  fmap (liftM2 (,) (failSingValueAlgT ta) (failSingValueAlgT tb) . unSingError . unRunLeft) .
-  fs . RunLeft . SingError $
-  sEitherAppendErrMError sxs sys
-lensRunEitherAppendErrM _  _  (SRight _sxs) (SLeft  _sys) fx _fy fs xss = _1 (fx fs) xss
-lensRunEitherAppendErrM _  _  (SLeft  _sxs) (SRight _sys) _fx fy fs xss = _2 (fy fs) xss
+  -> Lens' (ValueAlgT f ta) (RunSingValueOpq f xs)
+  -> Lens' (ValueAlgT f tb) (RunSingValueOpq f ys)
+  -> Lens' (ValueAlgT f ta, ValueAlgT f tb) (RunSingValueOpq f (xs <||> ys))
+lensRunAltEAppendErrM ta tb sxs sys fx fy fs xss =
+  case sxs of
+    SAltExcept sxs' ->
+      case sys of
+        SAltExcept sys' ->
+          fmap (liftM2 (,) (flip altFailValueAlgT ta) (flip altFailValueAlgT tb) . fromUnwrapSing . unRunAltExcept) $
+          fs . RunAltExcept . WrapSing $ sMergeErrors sxs' sys'
+        SAltThrow sys' ->
+          fmap (liftM2 (,) (flip altFailValueAlgT ta) (flip altFailValueAlgT tb) . fromUnwrapSing . unRunAltExcept) $
+          fs . RunAltExcept . WrapSing $ sMergeErrors sxs' sys'
+        SPureAltE _ ->
+          fmap (liftM2 (,) (flip altFailValueAlgT ta) (flip altFailValueAlgT tb) . fromUnwrapSing . unRunAltExcept) $
+          fs . RunAltExcept . WrapSing $ sxs'
+    SAltThrow sxs' ->
+      case sys of
+        SAltExcept sys' ->
+          fmap (liftM2 (,) (flip altFailValueAlgT ta) (flip altFailValueAlgT tb) . fromUnwrapSing . unRunAltExcept) $
+          fs . RunAltExcept . WrapSing $ sMergeErrors sxs' sys'
+        SAltThrow sys' ->
+          fmap (liftM2 (,) (flip altErrValueAlgT ta) (flip altErrValueAlgT tb) . fromUnwrapSing . unRunAltThrow) $
+          fs . RunAltThrow . WrapSing $ sMergeErrors sxs' sys'
+        SPureAltE _ -> _2 (fy fs) xss
+    SPureAltE sxs' ->
+      case sys of
+        SAltExcept sys' ->
+          fmap (liftM2 (,) (flip altFailValueAlgT ta) (flip altFailValueAlgT tb) . fromUnwrapSing . unRunAltExcept) $
+          fs . RunAltExcept . WrapSing $ sys'
+        SAltThrow _ -> _1 (fx fs) xss
+        SPureAltE sys' ->
+          fmap (liftM2 (,) (flip altFailValueAlgT ta) (flip altFailValueAlgT tb) . fromUnwrapSing . unRunAltExcept) $
+          fs . RunAltExcept . WrapSing $
+          sing @"(<||>) (PureAltE _) (PureAltE _):" `SCons` sShow_ sxs' `SCons` sShow_ sys' `SCons` SNil
 
-
-
-lensEpFieldTFieldEq :: forall f t fieldNameA fieldNameB eqAB. (Alternative f, MonadFail f)
+lensEpFieldTFieldEq :: forall f t fieldNameA fieldNameB eqAB. AltError [String] f
   => Sing t
   -> Sing fieldNameA
   -> Sing fieldNameB
   -> Sing eqAB
-  -> Lens' ((f :.: ValueOpq) t) (RunEither SingError (f :.: ValueOpq) (EpFieldTFieldEq t fieldNameA fieldNameB eqAB))
+  -> Lens' ((f :.: ValueOpq) t) (RunSingValueOpq f (EpFieldTFieldEq t fieldNameA fieldNameB eqAB))
 lensEpFieldTFieldEq _st _ _ STrue fs xs =
-  -- (fmap (Comp1 . (<|> unComp1 xs) . unComp1 . unRunRight) . fs . RunRight) xs
-  (fmap (Comp1 . (unComp1 xs <|>) . unComp1 . unRunRight) . fs . RunRight) xs
+  -- (fmap (Comp1 . (<|> unComp1 xs) . unComp1 . unRunRight) . fs . RunPureAltE) xs
+  (fmap unRunPureAltE . fs . RunPureAltE) xs
 lensEpFieldTFieldEq _st sfieldNameA sfieldNameB SFalse fs _ =
-  Comp1 . failSingErrorLeft <$>
-  (fs . RunLeft . SingError $ sEpFieldTFieldError sfieldNameA sfieldNameB)
+  Comp1 . altErr . fromUnwrapSing . unRunAltThrow <$>
+  (fs . RunAltThrow . WrapSing . flip SCons SNil $ sEpFieldTFieldError sfieldNameA sfieldNameB)
 
-lensEpFieldTAssertHere :: (MonadFail f)
+lensEpFieldTAssertHere :: AltError [String] f
   => Sing t
   -> Sing epPath
   -> Sing xs
-  -> Lens' (RunEither SingError (f :.: ValueOpq) xs) (RunEither SingError (f :.: ValueOpq) (EpFieldTAssertHere t epPath xs))
+  -> Lens' (RunSingValueOpq f xs) (RunSingValueOpq f (EpFieldTAssertHere t epPath xs))
 lensEpFieldTAssertHere st sepPath sxs =
   case sxs of
-    SLeft _ -> id
-    SRight _ ->
+    SAltThrow _ -> id
+    SAltExcept _ -> id
+    SPureAltE _ ->
       case sepPath of
         SHere -> id
-        ((:%*) _ _) -> \fs _ -> RunRight . Comp1 . failSingErrorLeft <$> (fs . RunLeft . SingError $ sEpFieldTAssertHereError st sepPath)
-        ((:%+) _ _) -> \fs _ -> RunRight . Comp1 . failSingErrorLeft <$> (fs . RunLeft . SingError $ sEpFieldTAssertHereError st sepPath)
+        ((:%*) _ _) -> \fs _ -> RunPureAltE . Comp1 . altFail . fromUnwrapSing . unRunAltExcept <$> (fs . RunAltExcept . WrapSing . flip SCons SNil $ sEpFieldTAssertHereError st sepPath)
+        ((:%+) _ _) -> \fs _ -> RunPureAltE . Comp1 . altFail . fromUnwrapSing . unRunAltExcept <$> (fs . RunAltExcept . WrapSing . flip SCons SNil $ sEpFieldTAssertHereError st sepPath)
 
-lensEpFieldTEntrypointEq :: forall f t (ann :: SymAnn t) epPath fieldName entrypointNameA entrypointNameB eqAB. (Alternative f, MonadFail f)
+lensEpFieldTEntrypointEq :: forall f t (ann :: SymAnn t) epPath fieldName entrypointNameA entrypointNameB eqAB. AltError [String] f
   => Sing t
   -> Sing ann
   -> Sing epPath
@@ -89,14 +117,14 @@ lensEpFieldTEntrypointEq :: forall f t (ann :: SymAnn t) epPath fieldName entryp
   -> Sing entrypointNameA
   -> Sing entrypointNameB
   -> Sing eqAB
-  -> Lens' (ValueAlgT f t) (RunEither SingError (f :.: ValueOpq) (EpFieldTEntrypointEq t ann epPath fieldName entrypointNameA entrypointNameB eqAB))
+  -> Lens' (ValueAlgT f t) (RunSingValueOpq f (EpFieldTEntrypointEq t ann epPath fieldName entrypointNameA entrypointNameB eqAB))
 lensEpFieldTEntrypointEq t ann epPath fieldName _ _ STrue fs xs =
   lensEpFieldT t ann epPath fieldName fs xs
 lensEpFieldTEntrypointEq t ann epPath fieldName entrypointNameA entrypointNameB SFalse fs _ =
-  fmap (failSingValueAlgT t . unSingError . unRunLeft) . fs . RunLeft . SingError $
+  fmap (flip altErrValueAlgT t . fromUnwrapSing . unRunAltThrow) . fs . RunAltThrow . WrapSing . flip SCons SNil $
   sEpFieldTEntrypointError ann epPath fieldName entrypointNameA entrypointNameB
 
-lensEpFieldTResolveOr :: forall f ta tb aa ab (as :: SymAnn ta) (bs :: SymAnn tb) epPath fieldName. (Alternative f, MonadFail f)
+lensEpFieldTResolveOr :: forall f ta tb aa ab (as :: SymAnn ta) (bs :: SymAnn tb) epPath fieldName. AltError [String] f
   => Sing ta
   -> Sing tb
   -> Sing aa
@@ -105,9 +133,9 @@ lensEpFieldTResolveOr :: forall f ta tb aa ab (as :: SymAnn ta) (bs :: SymAnn tb
   -> Sing bs
   -> Sing epPath
   -> Sing fieldName
-  -> Lens' (ValueAlgT f ta, ValueAlgT f tb) (RunEither SingError (f :.: ValueOpq) (EpFieldTResolveOr '(ta, tb) aa ab as bs epPath fieldName))
+  -> Lens' (ValueAlgT f ta, ValueAlgT f tb) (RunSingValueOpq f (EpFieldTResolveOr '(ta, tb) aa ab as bs epPath fieldName))
 lensEpFieldTResolveOr ta tb aa ab as bs ((:%+) entrypointName epPath) fieldName fs xs =
-  lensRunEitherAppendErrM
+  lensRunAltEAppendErrM
     ta
     tb
     (sEpFieldTEntrypointEq ta as epPath fieldName aa entrypointName (aa %== entrypointName))
@@ -118,23 +146,23 @@ lensEpFieldTResolveOr ta tb aa ab as bs ((:%+) entrypointName epPath) fieldName 
     xs
 
 lensEpFieldTResolveOr ta tb saa sab sas sbs sepPath@((:%*) _ _) sfieldName fs _xs =
-  liftM2 (,) (failSingValueAlgT ta) (failSingValueAlgT tb) . unSingError . unRunLeft <$>
-  (fs . RunLeft . SingError $ sEpFieldTResolveOrError saa sab sas sbs sepPath sfieldName)
+  liftM2 (,) (flip altFailValueAlgT ta) (flip altFailValueAlgT tb) . fromUnwrapSing . unRunAltExcept <$>
+  (fs . RunAltExcept . WrapSing . flip SCons SNil $ sEpFieldTResolveOrError saa sab sas sbs sepPath sfieldName)
 
 lensEpFieldTResolveOr ta tb saa sab sas sbs sepPath@SHere sfieldName fs _xs =
-  liftM2 (,) (failSingValueAlgT ta) (failSingValueAlgT tb) . unSingError . unRunLeft <$>
-  (fs . RunLeft . SingError $ sEpFieldTResolveOrError saa sab sas sbs sepPath sfieldName)
+  liftM2 (,) (flip altFailValueAlgT ta) (flip altFailValueAlgT tb) . fromUnwrapSing . unRunAltExcept <$>
+  (fs . RunAltExcept . WrapSing . flip SCons SNil $ sEpFieldTResolveOrError saa sab sas sbs sepPath sfieldName)
 
-lensEpFieldTResolvePair :: forall f ta tb (as :: SymAnn ta) (bs :: SymAnn tb) epPath fieldName. (Alternative f, MonadFail f)
+lensEpFieldTResolvePair :: forall f ta tb (as :: SymAnn ta) (bs :: SymAnn tb) epPath fieldName. AltError [String] f
   => Sing ta
   -> Sing tb
   -> Sing as
   -> Sing bs
   -> Sing epPath
   -> Sing fieldName
-  -> Lens' (ValueAlgT f ta, ValueAlgT f tb) (RunEither SingError (f :.: ValueOpq) (EpFieldTResolvePair ta tb as bs epPath fieldName))
+  -> Lens' (ValueAlgT f ta, ValueAlgT f tb) (RunSingValueOpq f (EpFieldTResolvePair ta tb as bs epPath fieldName))
 lensEpFieldTResolvePair sta stb sas sbs ((:%*) sepPathA sepPathB) sfieldName fs xs =
-  lensRunEitherAppendErrM
+  lensRunAltEAppendErrM
     sta
     stb
     (sEpFieldT sta sas sepPathA sfieldName)
@@ -145,19 +173,19 @@ lensEpFieldTResolvePair sta stb sas sbs ((:%*) sepPathA sepPathB) sfieldName fs 
     xs
 
 lensEpFieldTResolvePair sta stb sas sbs sepPath@((:%+) _ _) sfieldName fs _xs =
-  liftM2 (,) (failSingValueAlgT sta) (failSingValueAlgT stb) . unSingError . unRunLeft <$>
-  (fs . RunLeft . SingError $ sEpFieldTResolvePairError sas sbs sepPath sfieldName)
+  liftM2 (,) (flip altFailValueAlgT sta) (flip altFailValueAlgT stb) . fromUnwrapSing . unRunAltExcept <$>
+  (fs . RunAltExcept . WrapSing . flip SCons SNil $ sEpFieldTResolvePairError sas sbs sepPath sfieldName)
 
 lensEpFieldTResolvePair sta stb sas sbs sepPath@SHere sfieldName fs _xs =
-  liftM2 (,) (failSingValueAlgT sta) (failSingValueAlgT stb) . unSingError . unRunLeft <$>
-  (fs . RunLeft . SingError $ sEpFieldTResolvePairError sas sbs sepPath sfieldName)
+  liftM2 (,) (flip altFailValueAlgT sta) (flip altFailValueAlgT stb) . fromUnwrapSing . unRunAltExcept <$>
+  (fs . RunAltExcept . WrapSing . flip SCons SNil $ sEpFieldTResolvePairError sas sbs sepPath sfieldName)
 
-lensEpFieldT :: forall f t (ann :: SymAnn t) epPath fieldName. (Alternative f, MonadFail f)
+lensEpFieldT :: forall f t (ann :: SymAnn t) epPath fieldName. AltError [String] f
   => Sing t
   -> Sing ann
   -> Sing epPath
   -> Sing fieldName
-  -> Lens' (ValueAlgT f t) (RunEither SingError (f :.: ValueOpq) (EpFieldT t ann epPath fieldName))
+  -> Lens' (ValueAlgT f t) (RunSingValueOpq f (EpFieldT t ann epPath fieldName))
 lensEpFieldT (STOr ta tb) (SATOr _ aa ab as bs) epPath fieldName fs (VTOr xss) = VTOr <$>
   lensEpFieldTResolveOr @f ta tb aa ab as bs epPath fieldName fs xss
 

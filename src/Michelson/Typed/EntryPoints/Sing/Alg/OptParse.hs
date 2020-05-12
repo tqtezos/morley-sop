@@ -26,10 +26,10 @@ import qualified Michelson.TypeCheck.Types as TypeCheck
 import Michelson.Typed.EntryPoints
 import Michelson.Typed.Instr
 
-import Data.Either.Run
-import Data.Either.Run.ErrorMessage
+import Data.AltError
+import Data.AltError.Run
+import Data.Singletons.WrappedSing
 
-import Michelson.Typed.Annotation.Path
 import Michelson.Typed.Annotation.Sing.Alg
 import Michelson.Typed.EntryPoints.Sing.Alg
 import Michelson.Typed.EntryPoints.Sing.Alg.Aeson (ExampleParam, assertOpAbsense)
@@ -45,10 +45,8 @@ import qualified Michelson.Typed.Annotation.Sing as Michelson
 
 
 import Data.Singletons
-import Data.Singletons.Prelude.Either
 import Data.Singletons.Prelude.List
 
-import Data.AltError
 import Data.Constraint.HasDict1
 
 import Data.SOP (NP, NS)
@@ -65,15 +63,6 @@ import qualified Data.Text.Lazy.IO as TL
 traceShow' :: Show a => a -> b -> b
 traceShow' = trace . fromString . ("\n" <>) . show
 -- flip const
-
-parseRunEither :: forall a b (f :: a -> Type) (g :: b -> Type) (xs :: Either a b). (HasDict1 a, HasDict1 b, SingI xs)
-  => (forall (x :: a). SingI x => Parser (f x))
-  -> (forall (x :: b). SingI x => Parser (g x))
-  -> Parser (RunEither f g xs)
-parseRunEither fs gs =
-  case sing @xs of
-    SLeft ys -> RunLeft <$> withDict1 ys fs
-    SRight ys -> RunRight <$> withDict1 ys gs
 
 parseNS :: forall a m (f :: a -> Type) (xs :: [a]). (HasDict1 a, Alternative m, SingI xs)
   => (String -> m Void)
@@ -111,7 +100,7 @@ parseEpField :: forall f t ann epPath fieldName. (Applicative f, (forall (x :: T
 parseEpField =
   withDict1 (sEpFieldT (sing @t) (sing @ann) (sing @epPath) (sing @fieldName)) $
   EpField (sing @fieldName) . join traceShow' <$>
-  parseRunEither (pure $ SingError sing) (Comp1 . pure <$> parseValueOpq (T.unpack $ fromSing (sing @fieldName)))
+  parseRunAltE (pure $ WrapSing sing) (Comp1 . pure <$> parseValueOpq (T.unpack $ fromSing (sing @fieldName)))
 
 parseEpFields :: forall f t ann epPath. (Applicative f, (forall (x :: TOpq). SingI x => (Show (f (ValueOpq x)))), SingI t, SingI ann, SingI epPath)
   => Mod CommandFields (EpFields f t ann epPath)
@@ -165,12 +154,12 @@ parseEpValue =
   --     liftM2 (||) ("Available options" `isInfixOf`) ("-h,--help" `isInfixOf`)
 
 parseValue :: forall t (ann :: SymAnn t). (SingI t, SingI ann)
-  => (String, Parser (AltError (Value (FromTAlg t))))
-parseValue = fmap (runEpValue @AltError (sing @t) (sing @ann)) <$> parseEpValue @t @ann
+  => (String, Parser (AltE [String] (Value (FromTAlg t))))
+parseValue = fmap (runEpValue @(AltE [String]) (sing @t) (sing @ann)) <$> parseEpValue @t @ann
 
 parsePrintValue :: forall t (ann :: SymAnn t). (SingI t, SingI ann)
   => Bool
-  -> (String, Parser (AltError TL.Text))
+  -> (String, Parser (AltE [String] TL.Text))
 parsePrintValue forceSingleLine =
   traceShow' (fromSing $ singFromTAlg (sing @t)) $
   traceShow' (fromSing $ (sing @ann)) $
@@ -183,11 +172,13 @@ parsePrintValue forceSingleLine =
 parsePrintValueFromContractSource :: ()
   => Bool
   -> T.Text
-  -> (String, Parser (AltError TL.Text))
+  -> (String, Parser (AltE [String] TL.Text))
 parsePrintValueFromContractSource forceSingleLine contractSrc =
-  case unAltError $ parseSomeContractRaw contractSrc of
+  case parseSomeContractRaw (Left . unlines) contractSrc of
     Left err -> error . fromString $ unlines ["parsePrintValueFromContractSource: error parsing/typechecking contract:", err]
-    Right (TypeCheck.SomeContract (FullContract _ (ParamNotesUnsafe paramNotes' :: ParamNotes cp) _)) ->
+    Right (TypeCheck.SomeContract (FullContract _ (ParamNotesUnsafe paramNotes' :: ParamNotes cp) _)) ->  -- caseAltE
+    -- (\isFail err -> error . fromString $ unlines ["parsePrintValueFromContractSource: error parsing/typechecking contract:", show isFail, err])
+    -- (\(TypeCheck.SomeContract (FullContract _ (ParamNotesUnsafe paramNotes' :: ParamNotes cp) _)) ->
       case toSing (Michelson.annotatedFromNotes paramNotes') of
         SomeSing (sann :: Sing ann) ->
           let sann' = sFieldToTypeAnn (singToAnnotatedAlg sann) in
@@ -196,6 +187,8 @@ parsePrintValueFromContractSource forceSingleLine contractSrc =
             traceShow' ("next" :: String, fromSing sann') $
             withDict1 sann' $
             parsePrintValue @(ToTAlg cp) @(FieldToTypeAnn (ToAnnotatedAlg ann)) forceSingleLine
+    -- )
+    -- (parseSomeContractRaw altFail contractSrc)
 
 parsePrintValueFromContract :: IO ()
 parsePrintValueFromContract = do
@@ -213,7 +206,7 @@ parsePrintValueFromContract = do
                entryPointsParserPrefs
                (flip info fullDesc $ parsedValue')
                args'
-           runAltError (\x -> fail . unlines $ "unable to parse args:" : show x : args') TL.putStrLn michelsonStr')
+           caseAltE (\isFail x -> fail . unlines $ "unable to parse args:" : show (isFail, x) : args') TL.putStrLn michelsonStr')
          (do
            putStrLn @String "Available commands:"
            putStrLn @String ""

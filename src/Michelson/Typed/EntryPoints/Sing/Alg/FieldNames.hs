@@ -39,7 +39,7 @@ $(singletonsOnly [d|
   epFieldNamesResolvePair _as _bs ((:+) _ _) = []
   epFieldNamesResolvePair _as _bs Here = []
 
-  -- | Note that theres no @epFieldNamesFieldEq@:
+  -- Note that theres no @epFieldNamesFieldEq@:
   -- at that point in the resolution, theres no fieldname to check against
   -- so we just include it in the list of results.
   epFieldNames :: forall t. SymAnn t -> EpPath -> [Symbol]

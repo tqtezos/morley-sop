@@ -4,10 +4,9 @@
 module Michelson.Typed.Value.Free where
 
 import Data.Either
-import Data.Semigroup
 import Control.Applicative
-import Control.Monad hiding (fail)
-import Control.Monad.Fail
+import Control.Monad -- hiding (fail)
+-- import Control.Monad.Fail
 import Data.Function
 import Data.Bifunctor
 import Data.Eq
@@ -31,6 +30,7 @@ import Tezos.Crypto
 import Tezos.Core
 import qualified Michelson.Typed.Value as Michelson
 
+import Control.AltError
 import Data.Constraint.HasDict1
 import Michelson.Typed.T.Alg
 
@@ -134,8 +134,9 @@ data ValueAlgT' instr f t where
 
   VTOpq :: forall t instr f. f (ValueOpq' instr t) -> ValueAlgT' instr f ('TOpq t)
 
+-- | This uses `altErrValueAlgT` to provide empty fields
 toValueAlgT ::
-     forall instr f t. MonadFail f
+     forall instr str f t. (IsString str, AltError [str] f)
   => Sing t
   -> ValueAlg' instr t
   -> ValueAlgT' instr f t
@@ -144,8 +145,8 @@ toValueAlgT (STPair sta stb) (VPair (xs, ys)) =
 toValueAlgT (STOr sta stb) (VOr xss) =
   VTOr $
   case xss of
-    Left xs -> (toValueAlgT sta xs, failValueAlgT "toValueAlgT" stb)
-    Right ys -> (failValueAlgT "toValueAlgT" sta, toValueAlgT stb ys)
+    Left xs -> (toValueAlgT sta xs, altErrValueAlgT ["toValueAlgT"] stb)
+    Right ys -> (altErrValueAlgT ["toValueAlgT"] sta, toValueAlgT stb ys)
 toValueAlgT _ (VOpq xs) = VTOpq $ pure xs
 
 -- | Calculate a `ValueAlgT` from its type
@@ -157,17 +158,30 @@ pureValueAlgT f (STPair ta tb) = VTPair (pureValueAlgT f ta, pureValueAlgT f tb)
 pureValueAlgT f (STOr ta tb) = VTOr (pureValueAlgT f ta, pureValueAlgT f tb)
 pureValueAlgT f (STOpq _st) = VTOpq $ f Proxy
 
--- | `pureValueAlgT` using `fail` to provide instances of @f@
-failValueAlgT :: forall instr f t. MonadFail f
-  => String
+-- | `pureValueAlgT` using `altErr` to provide instances of @f@
+altErrValueAlgT :: forall instr str f t. (IsString str, AltError [str] f)
+  => [str]
   -> Sing t
   -> ValueAlgT' instr f t
-failValueAlgT err = pureValueAlgT $ const $ fail $ "failValueAlgT: " <> err
+altErrValueAlgT err = pureValueAlgT $ const $ altErr $ "altErrValueAlgT:" : err
 
-runValueAlgT :: forall instr f t. Alternative f
+-- | `pureValueAlgT` using `altFail` to provide instances of @f@
+altFailValueAlgT :: forall instr str f t. (IsString str, AltError [str] f)
+  => [str]
+  -> Sing t
+  -> ValueAlgT' instr f t
+altFailValueAlgT err = pureValueAlgT $ const $ altFail $ "altFailValueAlgT:" : err
+
+runValueAlgT :: forall instr str f t. (AltError str f, SingI t)
   => ValueAlgT' instr f t
   -> f (ValueAlg' instr t)
-runValueAlgT (VTPair (xs, ys)) = fmap VPair $ (,) <$> runValueAlgT xs <*> runValueAlgT ys
-runValueAlgT (VTOr (xs, ys)) = fmap VOr $ (Left <$> runValueAlgT xs) <|> (Right <$> runValueAlgT ys)
+runValueAlgT (VTPair (xs, ys)) =
+  withDict1 (case sing @t of { STPair ta _ -> ta } ) $
+  withDict1 (case sing @t of { STPair _ tb -> tb } ) $
+  fmap VPair $ (,) <$> runValueAlgT xs <*> runValueAlgT ys
+runValueAlgT (VTOr (xs, ys)) =
+  withDict1 (case sing @t of { STOr ta _ -> ta } ) $
+  withDict1 (case sing @t of { STOr _ tb -> tb } ) $
+  fmap VOr $ (Left <$> runValueAlgT xs) <||> (Right <$> runValueAlgT ys)
 runValueAlgT (VTOpq xs) = VOpq <$> xs
 

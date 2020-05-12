@@ -5,7 +5,6 @@
 
 module Michelson.Typed.EntryPoints.Sing.Alg.Aeson where
 
-import Control.Monad
 import Data.String
 import Prelude hiding (unwords, show, forM_, view, Lens')
 import GHC.Generics ((:.:)(..))
@@ -18,23 +17,18 @@ import Michelson.Typed.T (T)
 import Michelson.Typed.Scope
 import Util.Named
 
-import Data.Either.Run
-import Data.Either.Run.ErrorMessage
+import Data.AltError
+import Data.AltError.Run
+import Data.Singletons.WrappedSing
 
-import Michelson.Typed.Annotation.Path
-
-import Michelson.Typed.Annotation.Sing.Alg
 import Michelson.Typed.EntryPoints.Sing.Alg
 import Michelson.Typed.EntryPoints.Sing.Alg.Field
 import Michelson.Typed.EntryPoints.Sing.Alg.FieldNames
 import Michelson.Typed.EntryPoints.Sing.Alg.Types
 import Michelson.Typed.T.Alg
 import Michelson.Typed.Value.Free
-import qualified Michelson.Typed.Annotation.Sing as Michelson
 
-import Control.Lens (Lens', view)
 import Data.Singletons
-import Data.Singletons.Prelude.Either
 import Data.Constraint
 
 import Data.Constraint.HasDict1
@@ -44,8 +38,6 @@ import qualified Data.SOP as SOP
 
 import Data.Aeson -- (ToJSON(..))
 import qualified Data.Aeson as Aeson -- (ToJSON(..))
-import qualified Data.ByteString.Lazy as BL
-import Data.Aeson.Encode.Pretty
 
 assertOpAbsense :: forall (t :: T) a. Sing t -> (HasNoOp t => a) -> a
 assertOpAbsense st f =
@@ -76,12 +68,15 @@ epFieldsToEncoding sepPath xss =
     mapper (EpField sfieldName ys) = K
       ( fromSing sfieldName
       , case ys of
-          RunLeft (SingError serr) ->
+          RunAltThrow (WrapSing serr) ->
             error . fromString $
-            unwords ["epFieldsToEncoding: invalid field:", show (fromSing serr)]
-          RunRight (Comp1 (I yss)) ->
+            unwords ["epFieldsToEncoding: invalid field: RunAltThrow:", show (fromSing serr)]
+          RunAltExcept (WrapSing serr) ->
+            error . fromString $
+            unwords ["epFieldsToEncoding: invalid field: RunAltExcept:", show (fromSing serr)]
+          RunPureAltE (Comp1 (I yss)) ->
             case sEpFieldT (sing @t) (sing @ann) sepPath sfieldName of
-              SRight st ->
+              SPureAltE st ->
                 assertOpAbsense (singFromTOpq st) $
                 withDict1 st $ toJSON $
                 SomeValueOpq yss
@@ -125,21 +120,21 @@ instance ParameterHasEntryPoints ExampleParam where
 exampleValueAlgs :: [ValueAlg (ToTAlg (ToT ExampleParam))]
 exampleValueAlgs = toValueAlg . toVal <$> exampleParams
 
-exampleJSON :: [Aeson.Value]
-exampleJSON =
-  case toSing (Michelson.annotatedFromNotes (epdNotes @EpdPlain @ExampleParam)) of
-    SomeSing (sann :: Sing ann) ->
-      let sann' = singToAnnotatedAlg sann in
-      let getter = (lensEpValueF
-                    (sing @(ToTAlg (ToT ExampleParam)))
-                    sann'
-                    :: Lens' (ValueAlgT Maybe (ToTAlg (ToT ExampleParam))) (EpValueF Maybe (ToTAlg (ToT ExampleParam)) (ToAnnotatedAlg ann))
-                   ) in
-      withDict1 sann' $
-      toJSON . fromEpValueF (sing @(ToTAlg (ToT ExampleParam))) sann' . view getter . toValueAlgT sing <$> exampleValueAlgs
+-- exampleJSON :: [Aeson.Value]
+-- exampleJSON =
+--   case toSing (Michelson.annotatedFromNotes (epdNotes @EpdPlain @ExampleParam)) of
+--     SomeSing (sann :: Sing ann) ->
+--       let sann' = singToAnnotatedAlg sann in
+--       let getter = (lensEpValueF
+--                     (sing @(ToTAlg (ToT ExampleParam)))
+--                     sann'
+--                     :: Lens' (ValueAlgT Maybe (ToTAlg (ToT ExampleParam))) (EpValueF Maybe (ToTAlg (ToT ExampleParam)) (ToAnnotatedAlg ann))
+--                    ) in
+--       withDict1 sann' $
+--       toJSON . fromEpValueF (sing @(ToTAlg (ToT ExampleParam))) sann' . view getter . toValueAlgT sing <$> exampleValueAlgs
 
-demoJSON :: IO ()
-demoJSON =
-  forM_ exampleJSON $
-  BL.putStrLn.encodePretty
+-- demoJSON :: IO ()
+-- demoJSON =
+--   forM_ exampleJSON $
+--   BL.putStrLn.encodePretty
 

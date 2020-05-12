@@ -10,6 +10,10 @@ import Text.Show
 import GHC.Generics ((:.:)(..))
 import Prelude hiding (Map, All, unwords, show, set)
 
+import Control.AltError
+import Data.AltError
+import Data.AltError.Run
+
 import Michelson.Typed.Annotation.Path
 
 import Michelson.Typed.T.Alg
@@ -113,7 +117,7 @@ wrapEpFields' st sann xs =
   wrapNP $
   (\case { EpFields _ xss -> xss }) <$> xs
 
-emptyEpFields :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). MonadFail f
+emptyEpFields :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). AltError [String] f
   => Sing t
   -> Sing ann
   -> Sing epPath
@@ -135,7 +139,7 @@ transEpFields trans' st sann (EpFields sepPath xs) =
   EpFields sepPath $
   SOP.hmap (transEpField trans' st sann sepPath) xs
 
-lensEpFields :: forall f (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). (Alternative f, MonadFail f)
+lensEpFields :: forall f (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). AltError [String] f
   => Sing t
   -> Sing ann
   -> Sing epPath
