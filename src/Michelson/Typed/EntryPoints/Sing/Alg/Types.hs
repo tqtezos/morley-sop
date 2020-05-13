@@ -19,9 +19,6 @@ import Data.Singletons.TH
 import Data.Singletons.TypeLits
 
 
-class (MonadFail m, Alternative m) => MonadAlg m
-instance (MonadFail m, Alternative m) => MonadAlg m
-
 type SymAnn = AnnotatedAlg Symbol
 
 $(singletonsOnly [d|

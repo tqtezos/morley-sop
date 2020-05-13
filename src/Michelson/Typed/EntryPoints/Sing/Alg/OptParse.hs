@@ -26,6 +26,7 @@ import qualified Michelson.TypeCheck.Types as TypeCheck
 import Michelson.Typed.EntryPoints
 import Michelson.Typed.Instr
 
+import Control.AltError
 import Data.AltError
 import Data.AltError.Run
 import Data.Singletons.WrappedSing
@@ -111,14 +112,14 @@ parseEpFields =
   EpFields (sing @epPath) <$>
   parseNP parseEpField
 
-parserResultHelp :: MonadFail m => ParserResult a -> m ParserHelp
-parserResultHelp (Success _) = fail "parserResultHelp: Success"
+parserResultHelp :: AltError [String] m => ParserResult a -> m ParserHelp
+parserResultHelp (Success _) = altFail ["parserResultHelp: Success"]
 parserResultHelp (Failure (ParserFailure xs)) =
   case xs "morley-sop" of
-    (parserHelp', _, _) -> return parserHelp'
-parserResultHelp (CompletionInvoked _) = fail "parserResultHelp: CompletionInvoked"
+    (parserHelp', _, _) -> pure parserHelp'
+parserResultHelp (CompletionInvoked _) = altFail ["parserResultHelp: CompletionInvoked"]
 
-getCommandHelp :: MonadFail m => Parser a -> String -> m String
+getCommandHelp :: AltError [String] m => Parser a -> String -> m String
 getCommandHelp p cmd =
   fmap (renderHelp eightyCols) $
   parserResultHelp $
@@ -126,32 +127,41 @@ getCommandHelp p cmd =
   where
     eightyCols = 80
 
+-- | Show help
+voidHelpOption :: Parser Void
+voidHelpOption = option (readerAbort ShowHelpText) $ mconcat
+  [ noArgError ShowHelpText
+  , metavar "" ]
+
 parseEpValue ::
      forall t ann. (SingI t, SingI ann)
   => (String, Parser (EpValue t ann))
 parseEpValue =
   traceShow' (fromSing $ sEpPaths (sing @ann)) $
   withDict1 (sEpPaths (sing @ann)) $
-  (,) "\n[parseEpValue]\n" $
-    -- (fromString $
-    --  runAltError
-    --    ("parseEpValue: failed: " ++)
-    --    (unlines . filter (not . isHelpLine) . Data.String.lines . unlines) $
-    --  getCommandHelp
-    --    (parseNS
-    --       @_
-    --       @_
-    --       @_
-    --       @(EpPaths ann)
-    --       (fmap (error "impossible") . flip abortOption mempty . ErrorMsg) -- readerError
-    --       (hsubparser (parseEpFields @AltError @t @ann))) `mapM`
-    --  (fmap show . fromSing $ sEpPaths (sing @ann))) $
+  (,)
+  -- "\n[parseEpValue]\n" $
+    (fromString . unlines $
+     caseAltE
+       (\isFail -> (("parseEpValue: " ++ bool "errored" "failed" isFail ++ ": ") :))
+       (filter (not . isHelpLine) . Data.String.lines . unlines) $
+     getCommandHelp
+       (parseNS
+          @_
+          @_
+          @_
+          @(EpPaths ann)
+          (const voidHelpOption)
+          -- readerError -- (fmap (error "impossible") . flip abortOption mempty . ErrorMsg)
+          (hsubparser (parseEpFields @(AltE [String]) @t @ann))) `traverse`
+     (fmap show . fromSing $ sEpPaths (sing @ann))) $
   -- (fromSing $ sEpPaths (sing @ann)) $ parseNS @_ @_ @_ @(EpPaths ann) (flip option mempty . readerError) (hsubparser (parseEpFields @AltError @t @ann))) $ -- ) `displayS` "") $
   EpValue <$>
-  parseNS (fmap (error "impossible") . flip abortOption mempty . ErrorMsg) (hsubparser parseEpFields) -- readerError
-  -- where
-  --   isHelpLine =
-  --     liftM2 (||) ("Available options" `isInfixOf`) ("-h,--help" `isInfixOf`)
+  parseNS (const voidHelpOption) (hsubparser parseEpFields)
+  -- readerError -- (fmap (error "impossible") . flip abortOption mempty . ErrorMsg)
+  where
+    isHelpLine =
+      liftM2 (||) ("Available options" `isInfixOf`) ("-h,--help" `isInfixOf`)
 
 parseValue :: forall t (ann :: SymAnn t). (SingI t, SingI ann)
   => (String, Parser (AltE [String] (Value (FromTAlg t))))
@@ -177,8 +187,6 @@ parsePrintValueFromContractSource forceSingleLine contractSrc =
   case parseSomeContractRaw (Left . unlines) contractSrc of
     Left err -> error . fromString $ unlines ["parsePrintValueFromContractSource: error parsing/typechecking contract:", err]
     Right (TypeCheck.SomeContract (FullContract _ (ParamNotesUnsafe paramNotes' :: ParamNotes cp) _)) ->  -- caseAltE
-    -- (\isFail err -> error . fromString $ unlines ["parsePrintValueFromContractSource: error parsing/typechecking contract:", show isFail, err])
-    -- (\(TypeCheck.SomeContract (FullContract _ (ParamNotesUnsafe paramNotes' :: ParamNotes cp) _)) ->
       case toSing (Michelson.annotatedFromNotes paramNotes') of
         SomeSing (sann :: Sing ann) ->
           let sann' = sFieldToTypeAnn (singToAnnotatedAlg sann) in
@@ -187,8 +195,6 @@ parsePrintValueFromContractSource forceSingleLine contractSrc =
             traceShow' ("next" :: String, fromSing sann') $
             withDict1 sann' $
             parsePrintValue @(ToTAlg cp) @(FieldToTypeAnn (ToAnnotatedAlg ann)) forceSingleLine
-    -- )
-    -- (parseSomeContractRaw altFail contractSrc)
 
 parsePrintValueFromContract :: IO ()
 parsePrintValueFromContract = do
