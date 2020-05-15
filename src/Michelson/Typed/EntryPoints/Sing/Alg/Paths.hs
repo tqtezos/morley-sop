@@ -22,12 +22,15 @@ import Data.Singletons.Prelude.List
 import Data.Singletons.Prelude.Functor
 
 $(singletonsOnly [d|
+  epPathsRaw :: forall t. SymAnn t -> [EpPath]
+  epPathsRaw (ATOr _ aa ab as bs) =
+    ((:+) aa <$> epPathsRaw as) ++
+    ((:+) ab <$> epPathsRaw bs)
+  epPathsRaw (ATPair _ _ _ as bs) = liftA2 (:*) (epPathsRaw as) (epPathsRaw bs)
+  epPathsRaw (ATOpq _ta) = [Here]
+
   epPaths :: forall t. SymAnn t -> [EpPath]
-  epPaths (ATOr _ aa ab as bs) =
-    ((:+) aa <$> epPaths as) ++
-    ((:+) ab <$> epPaths bs)
-  epPaths (ATPair _ _ _ as bs) = liftA2 (:*) (epPaths as) (epPaths bs)
-  epPaths (ATOpq _ta) = [Here]
+  epPaths ann = sort (epPathsRaw ann)
 
   |])
 

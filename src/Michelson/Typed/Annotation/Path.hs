@@ -72,6 +72,7 @@ instance ToJSON (Path Text) where
 
 $(genSingletons [''Path])
 $(singEqInstance ''Path)
+$(singOrdInstance ''Path)
 $(singShowInstance ''Path)
 
 singIPath :: forall a (xs :: Path a). (forall (x :: a). Sing x -> Dict (SingI x)) -> Sing xs -> Dict (SingI xs)
