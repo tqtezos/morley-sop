@@ -19,6 +19,7 @@ import Michelson.Typed.T.Alg
 import Data.Singletons.TH
 import Data.Singletons.TypeLits
 import Data.Singletons.Prelude.Applicative
+import Data.Singletons.Prelude.List
 import Data.Singletons.Prelude.Monad
 import Data.Singletons.Prelude.Semigroup
 import Data.Singletons.Prelude.Bool
@@ -90,7 +91,7 @@ $(singletonsOnly [d|
 
   -- All entrypoint field names, in ErrM
   epFieldNamesErrM :: forall t. TAlg -> SymAnn t -> EpPath -> ErrM [Symbol]
-  epFieldNamesErrM t ann epPath = listEToErrM (epFieldNames t ann epPath)
+  epFieldNamesErrM t ann epPath = sort <$> listEToErrM (epFieldNames t ann epPath)
 
   epFieldTs :: forall t. TAlg -> SymAnn t -> EpPath -> ErrM [TOpq]
   epFieldTs t ann epPath =

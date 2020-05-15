@@ -112,10 +112,10 @@ parseEpFields =
   traceShow' (fromSing $ sListEToErrM $ sEpFieldNames (sing @t) (sing @ann) (sing @epPath)) $
   -- withDict1 (sEpFieldNames (sing @ann) (sing @epPath)) $
   EpFields (sing @epPath) <$>
-  parseRunAltE @_ @WrappedSing @_ @Parser @(ListEToErrM (EpFieldNames t ann epPath))
+  parseRunAltE @_ @WrappedSing @_ @Parser @(EpFieldNamesErrM t ann epPath)
     (pure $ WrapSing sing)
     (parseNP parseEpField)
-    (sListEToErrM (sEpFieldNames (sing @t) (sing @ann) (sing @epPath)))
+    (sEpFieldNamesErrM (sing @t) (sing @ann) (sing @epPath))
 
 parserResultHelp :: AltError [String] m => ParserResult a -> m ParserHelp
 parserResultHelp (Success _) = altFail ["parserResultHelp: Success"]

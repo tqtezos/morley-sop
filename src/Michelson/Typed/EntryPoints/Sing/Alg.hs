@@ -229,7 +229,7 @@ epValuePath _st sann (EpValue xs) =
 epValueFields :: forall (t :: TAlg) (ann :: SymAnn t) r. ()
   => (forall (epPath :: EpPath). ()
     => Sing epPath
-    -> RunAltE WrappedSing (NP (EpField I t ann epPath)) (ListEToErrM (EpFieldNames t ann epPath)) -- NP (EpField I t ann epPath) (EpFieldNames t ann epPath)
+    -> RunAltE WrappedSing (NP (EpField I t ann epPath)) (EpFieldNamesErrM t ann epPath)
     -> r)
   -> Sing t
   -> Sing ann
