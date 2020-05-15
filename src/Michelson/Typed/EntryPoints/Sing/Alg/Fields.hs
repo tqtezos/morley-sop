@@ -12,6 +12,7 @@ import Prelude hiding (Map, All, unwords, show, set)
 
 import Control.AltError
 import Data.AltError
+import Data.ListError
 import Data.AltError.Run
 
 import Michelson.Typed.Annotation.Path
@@ -29,25 +30,30 @@ import Control.Lens.Setter
 import Data.SOP (I(..), NP)
 import qualified Data.SOP as SOP
 import Data.Singletons
+import Data.Singletons.TypeLits
 import Data.Singletons.Prelude.List
+import Data.Singletons.Prelude.Traversable
+import Data.Singletons.Prelude.Functor
+import Data.Singletons.Prelude.Monad
 import Data.Constraint
 
+type EpFieldTs (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) =
+  (ListEToErrM (EpFieldNames t ann epPath) >>=
+  TraverseSym1 (EpFieldTSym3 t ann epPath) :: ErrM [TOpq])
 
-type EpFieldTs (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) = Map (EpFieldTSym3 t ann epPath) (EpFieldNames ann epPath)
-
-singEpFieldTs :: forall (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). (SingI t, SingI ann, SingI epPath)
+singEpFieldTs :: forall (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). ()
   => Sing t
   -> Sing ann
   -> Sing epPath
   -> Sing (EpFieldTs t ann epPath)
-singEpFieldTs _st sann sepPath =
-  sMap (sing @(EpFieldTSym3 t ann epPath)) $
-  sEpFieldNames sann sepPath
+singEpFieldTs st sann sepPath =
+  sListEToErrM (sEpFieldNames st sann sepPath) %>>=
+  singFun1 @(TraverseSym1 (EpFieldTSym3 t ann epPath)) (sTraverse (singFun1 @(EpFieldTSym3 t ann epPath) (sEpFieldT st sann sepPath)))
 
 data EpFields (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) where
   EpFields :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). ()
     => Sing epPath
-    -> NP (EpField f t ann epPath) (EpFieldNames ann epPath)
+    -> RunAltE WrappedSing (NP (EpField f t ann epPath)) (ListEToErrM (EpFieldNames t ann epPath))
     -> EpFields f t ann epPath
 
 prfAllShowEpField :: forall f t (ann :: SymAnn t) epPath xs. (forall t'. SingI t' => Show (f (ValueOpq t')))
@@ -61,20 +67,31 @@ prfAllShowEpField st sann sepPath (SCons _sx sxs) =
   Dict
 
 instance forall f t (ann :: SymAnn t) (epPath :: EpPath). (forall t'. SingI t' => Show (f (ValueOpq t')), SingI t, SingI ann) => Show (EpFields f t ann epPath) where
-  showsPrec d (EpFields sepPath xs) =
-    withDict (prfAllShowEpField @f (sing @t) (sing @ann) sepPath (sEpFieldNames (sing @ann) sepPath)) $
+  showsPrec d (EpFields sepPath (RunAltThrow xs)) =
     showsBinaryWith showsPrec showsPrec "EpFields" d (fromSing sepPath) xs
-
+  showsPrec d (EpFields sepPath (RunAltExcept xs)) =
+    showsBinaryWith showsPrec showsPrec "EpFields" d (fromSing sepPath) xs
+  showsPrec d (EpFields sepPath (RunPureAltE xs)) =
+    case sListEToErrM @Symbol (sEpFieldNames (sing @t) (sing @ann) sepPath) of
+      SPureAltE sxs ->
+        withDict (prfAllShowEpField @f (sing @t) (sing @ann) sepPath sxs) $
+        showsBinaryWith showsPrec showsPrec "EpFields" d (fromSing sepPath) xs
 
 unwrapEpFields :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). Applicative f
   => Sing t
   -> Sing ann
   -> EpFields f t ann epPath
   -> f (EpFields I t ann epPath)
-unwrapEpFields _st sann (EpFields sepPath xs) =
-  withDict (singAllSingI $ sEpFieldNames sann sepPath) $
-  EpFields sepPath <$>
-  SOP.htraverse' unwrapEpField xs
+unwrapEpFields st sann (EpFields sepPath (RunAltThrow xs)) =
+  EpFields sepPath . RunAltThrow <$> pure xs
+unwrapEpFields st sann (EpFields sepPath (RunAltExcept xs)) =
+  EpFields sepPath . RunAltExcept <$> pure xs
+unwrapEpFields st sann (EpFields sepPath (RunPureAltE xs)) =
+  case sListEToErrM @Symbol (sEpFieldNames st sann sepPath) of
+    SPureAltE sxs ->
+      withDict (singAllSingI sxs) $
+      EpFields sepPath . RunPureAltE <$>
+      SOP.htraverse' unwrapEpField xs
 
 -- wrapEpFields :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). Applicative f
 --   => Sing t
@@ -111,10 +128,14 @@ wrapEpFields' :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPat
   -> f (EpFields I t ann epPath)
   -> EpFields f t ann epPath
 wrapEpFields' st sann xs =
-  EpFields (sing @epPath) $
-  withDict (singAllSingI $ sEpFieldNames sann (sing @epPath)) $
-  SOP.hcmap (Proxy @SingI) (wrapEpField' st sann . unComp1) $
-  wrapNP $
+  EpFields @f @t @ann @epPath (sing @epPath) $
+  wrapRunAltE
+    (\sys ->
+      withDict (singAllSingI sys) $
+      SOP.hcmap (Proxy @SingI) (wrapEpField' st sann . unComp1) .
+      wrapNP
+    )
+    (sListEToErrM (sEpFieldNames st sann (sing @epPath))) $
   (\case { EpFields _ xss -> xss }) <$> xs
 
 emptyEpFields :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). AltError [String] f
@@ -123,10 +144,14 @@ emptyEpFields :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPat
   -> Sing epPath
   -> EpFields f t ann epPath
 emptyEpFields st sann sepPath =
-  withDict (singAllSingI $ sEpFieldNames sann sepPath) $
   EpFields sepPath $
-  SOP.hcpure (Proxy @SingI) $ emptyEpField st sann sepPath sing
-
+  singToRunAltE
+    WrapSing
+    (\sxs ->
+      withDict (singAllSingI sxs) $
+      SOP.hcpure (Proxy @SingI) $ emptyEpField st sann sepPath sing
+    )
+    (sListEToErrM @Symbol (sEpFieldNames st sann sepPath))
 
 transEpFields :: forall (f :: Type -> Type) (g :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). ()
   => (forall t'. SingI t' => f (ValueOpq t') -> g (ValueOpq t'))
@@ -135,9 +160,15 @@ transEpFields :: forall (f :: Type -> Type) (g :: Type -> Type) (t :: TAlg) (ann
   -> EpFields f t ann epPath
   -> EpFields g t ann epPath
 transEpFields trans' st sann (EpFields sepPath xs) =
-  withDict (singAllSingI $ sEpFieldNames sann sepPath) $
   EpFields sepPath $
-  SOP.hmap (transEpField trans' st sann sepPath) xs
+  case xs of
+    RunAltThrow ys -> RunAltThrow ys
+    RunAltExcept ys -> RunAltExcept ys
+    RunPureAltE ys -> RunPureAltE $
+      case sListEToErrM @Symbol (sEpFieldNames st sann sepPath) of
+        SPureAltE sxs ->
+          withDict (singAllSingI sxs) $
+          SOP.hmap (transEpField trans' st sann sepPath) ys
 
 lensEpFields :: forall f (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). AltError [String] f
   => Sing t
@@ -148,23 +179,36 @@ lensEpFields st sann sepPath fs xs =
   withDict1 st $
   withDict1 sann $
   withDict1 sepPath $
-  withDict (singAllSingI $ sEpFieldNames sann sepPath) $
-  (\(EpFields _ ys) -> flip appEndo xs $
-    SOP.hcfoldMap
-      (Proxy @SingI)
-      (\(EpField sfieldName zs) -> Endo $
-        (lensEpFieldT st sann sepPath sfieldName) `set` zs
-      )
-      ys
+  (\(EpFields _ ys) ->
+    case ys of
+      RunAltThrow zs -> altErrValueAlgT (fromUnwrapSing zs) st
+      RunAltExcept zs -> altFailValueAlgT (fromUnwrapSing zs) st
+      RunPureAltE zs ->
+        case sListEToErrM @Symbol (sEpFieldNames (sing @t) (sing @ann) sepPath) of
+          SPureAltE sxs ->
+            withDict (singAllSingI sxs) $
+            flip appEndo xs $
+            SOP.hcfoldMap
+              (Proxy @SingI)
+              (\(EpField sfieldName ws) -> Endo $
+                (lensEpFieldT st sann sepPath sfieldName) `set` ws
+              )
+              zs
   ) <$>
   (fs . EpFields sepPath $
-    SOP.hcmap
-      (Proxy @SingI)
-      (\(WrapSing sfieldName) ->
-        EpField @f @t @ann @epPath sfieldName $
-        lensEpFieldT st sann sepPath sfieldName `view` xs
-      ) $
-    npWrappedSing $
-    sEpFieldNames sann sepPath
+    singToRunAltE
+      WrapSing
+      (\sxs ->
+        withDict (singAllSingI sxs) $
+        SOP.hcmap
+          (Proxy @SingI)
+          (\(WrapSing sfieldName) ->
+            EpField @f @t @ann @epPath sfieldName $
+            lensEpFieldT st sann sepPath sfieldName `view` xs
+          ) $
+        npWrappedSing $
+        sxs
+      )
+      (sListEToErrM @Symbol (sEpFieldNames st sann sepPath))
   )
 

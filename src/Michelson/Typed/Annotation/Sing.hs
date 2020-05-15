@@ -10,14 +10,14 @@ import Prelude
 import Data.Kind
 import Text.Show
 
-import Michelson.Typed.Annotation
-import Michelson.Untyped.Annotation
 import Michelson.Typed.T
 
 import Data.Singletons
 import Data.Singletons.Prelude
 import Data.Singletons.TH
 import Data.Constraint
+
+import Data.Singletons.Prelude.Monad.State
 
 
 -- | A generalization of `Notes` that's more amenable to `Sing`, `SingKind`
@@ -59,44 +59,25 @@ $(singletons [d|
     showsPrec d (ATBigMap ta tb xs) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATBigMap" d (ta, tb, xs)
     showsPrec d (ATPair x1 x2 x3 x4 x5) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATPair" d (x1, x2, x3, x4, x5)
     showsPrec d (ATOr x1 x2 x3 x4 x5) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATOr" d (x1, x2, x3, x4, x5)
+
+  traverseAnnotated :: (a -> State' s b) -> Annotated a t -> State' s (Annotated b t)
+  traverseAnnotated fs (ATc ta) = ATc <$$> fs ta
+  traverseAnnotated fs (ATKey ta) = ATKey <$$> fs ta
+  traverseAnnotated fs (ATUnit ta) = ATUnit <$$> fs ta
+  traverseAnnotated fs (ATSignature ta) = ATSignature <$$> fs ta
+  traverseAnnotated fs (ATChainId ta) = ATChainId <$$> fs ta
+  traverseAnnotated fs (ATOption ta xs) = ATOption <$$> fs ta <<*>> traverseAnnotated fs xs
+  traverseAnnotated fs (ATList ta xs) = ATList <$$> fs ta <<*>> traverseAnnotated fs xs
+  traverseAnnotated fs (ATSet ta tb) = ATSet <$$> fs ta <<*>> fs tb
+  traverseAnnotated fs (ATOperation ta) = ATOperation <$$> fs ta
+  traverseAnnotated fs (ATContract ta xs) = ATContract <$$> fs ta <<*>> traverseAnnotated fs xs
+  traverseAnnotated fs (ATLambda ta xs ys) = ATLambda <$$> fs ta <<*>> traverseAnnotated fs xs <<*>> traverseAnnotated fs ys
+  traverseAnnotated fs (ATMap ta tb xs) = ATMap <$$> fs ta <<*>> fs tb <<*>> traverseAnnotated fs xs
+  traverseAnnotated fs (ATBigMap ta tb xs) = ATBigMap <$$> fs ta <<*>> fs tb <<*>> traverseAnnotated fs xs
+  traverseAnnotated fs (ATPair x1 x2 x3 x4 x5) = ATPair <$$> fs x1 <<*>> fs x2 <<*>> fs x3 <<*>> traverseAnnotated fs x4 <<*>> traverseAnnotated fs x5
+  traverseAnnotated fs (ATOr x1 x2 x3 x4 x5) = ATOr <$$> fs x1 <<*>> fs x2 <<*>> fs x3 <<*>> traverseAnnotated fs x4 <<*>> traverseAnnotated fs x5
+
     |])
-
-
--- | Convert to `Notes`
-annotatedToNotes :: Annotated Text t -> Notes t
-annotatedToNotes (ATc ta) = NTc (AnnotationUnsafe ta)
-annotatedToNotes (ATKey ta) = NTKey (AnnotationUnsafe ta)
-annotatedToNotes (ATUnit ta) = NTUnit (AnnotationUnsafe ta)
-annotatedToNotes (ATSignature ta) = NTSignature (AnnotationUnsafe ta)
-annotatedToNotes (ATChainId ta) = NTChainId (AnnotationUnsafe ta)
-annotatedToNotes (ATOption ta xs) = NTOption (AnnotationUnsafe ta) (annotatedToNotes xs)
-annotatedToNotes (ATList ta xs) = NTList (AnnotationUnsafe ta) (annotatedToNotes xs)
-annotatedToNotes (ATSet ta tb) = NTSet (AnnotationUnsafe ta) (AnnotationUnsafe tb)
-annotatedToNotes (ATOperation ta) = NTOperation (AnnotationUnsafe ta)
-annotatedToNotes (ATContract ta xs) = NTContract (AnnotationUnsafe ta) (annotatedToNotes xs)
-annotatedToNotes (ATPair ta tb tc xs ys) = NTPair (AnnotationUnsafe ta) (AnnotationUnsafe tb) (AnnotationUnsafe tc) (annotatedToNotes xs) (annotatedToNotes ys)
-annotatedToNotes (ATOr ta tb tc xs ys) = NTOr (AnnotationUnsafe ta) (AnnotationUnsafe tb) (AnnotationUnsafe tc) (annotatedToNotes xs) (annotatedToNotes ys)
-annotatedToNotes (ATLambda ta xs ys) = NTLambda (AnnotationUnsafe ta) (annotatedToNotes xs) (annotatedToNotes ys)
-annotatedToNotes (ATMap ta tb xs) = NTMap (AnnotationUnsafe ta) (AnnotationUnsafe tb) (annotatedToNotes xs)
-annotatedToNotes (ATBigMap ta tb xs) = NTBigMap (AnnotationUnsafe ta) (AnnotationUnsafe tb) (annotatedToNotes xs)
-
--- | Convert from `Notes`
-annotatedFromNotes :: Notes t -> Annotated Text t
-annotatedFromNotes (NTc (AnnotationUnsafe ta)) = ATc ta
-annotatedFromNotes (NTKey (AnnotationUnsafe ta)) = ATKey ta
-annotatedFromNotes (NTUnit (AnnotationUnsafe ta)) = ATUnit ta
-annotatedFromNotes (NTSignature (AnnotationUnsafe ta)) = ATSignature ta
-annotatedFromNotes (NTChainId (AnnotationUnsafe ta)) = ATChainId ta
-annotatedFromNotes (NTOption (AnnotationUnsafe ta) xs) = ATOption ta (annotatedFromNotes xs)
-annotatedFromNotes (NTList (AnnotationUnsafe ta) xs) = ATList ta (annotatedFromNotes xs)
-annotatedFromNotes (NTSet (AnnotationUnsafe ta) (AnnotationUnsafe tb)) = ATSet ta tb
-annotatedFromNotes (NTOperation (AnnotationUnsafe ta)) = ATOperation ta
-annotatedFromNotes (NTContract (AnnotationUnsafe ta) xs) = ATContract ta (annotatedFromNotes xs)
-annotatedFromNotes (NTPair (AnnotationUnsafe ta) (AnnotationUnsafe tb) (AnnotationUnsafe tc) xs ys) = ATPair ta tb tc (annotatedFromNotes xs) (annotatedFromNotes ys)
-annotatedFromNotes (NTOr (AnnotationUnsafe ta) (AnnotationUnsafe tb) (AnnotationUnsafe tc) xs ys) = ATOr ta tb tc (annotatedFromNotes xs) (annotatedFromNotes ys)
-annotatedFromNotes (NTLambda (AnnotationUnsafe ta) xs ys) = ATLambda ta (annotatedFromNotes xs) (annotatedFromNotes ys)
-annotatedFromNotes (NTMap (AnnotationUnsafe ta) (AnnotationUnsafe tb) xs) = ATMap ta tb (annotatedFromNotes xs)
-annotatedFromNotes (NTBigMap (AnnotationUnsafe ta) (AnnotationUnsafe tb) xs) = ATBigMap ta tb (annotatedFromNotes xs)
 
 data instance Sing :: Annotated a t -> Type where
   SATc         :: forall a (ta :: a). Sing ta -> Sing ('ATc ta)

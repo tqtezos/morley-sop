@@ -18,6 +18,7 @@ import Michelson.Typed.Scope
 import Util.Named
 
 import Data.AltError
+import Data.ListError
 import Data.AltError.Run
 import Data.Singletons.WrappedSing
 
@@ -54,43 +55,43 @@ instance ToJSON SomeValueOpq where
   toJSON (SomeValueOpq xs) = toJSON xs
   toEncoding (SomeValueOpq xs) = toEncoding xs
 
-epFieldsToEncoding :: forall t ann epPath. (SingI t, SingI ann)
-    => Sing epPath
-    -> NP (EpField I t ann epPath) (EpFieldNames ann epPath)
-    -> Aeson.Value
-epFieldsToEncoding sepPath xss =
-  object $
-  withDict (singAllSingI $ sEpFieldNames (sing @ann) sepPath) $
-  SOP.hcollapse $
-  SOP.hmap mapper xss
-    where
-    mapper :: forall fieldName. EpField I t ann epPath fieldName -> K (Text, Aeson.Value) fieldName
-    mapper (EpField sfieldName ys) = K
-      ( fromSing sfieldName
-      , case ys of
-          RunAltThrow (WrapSing serr) ->
-            error . fromString $
-            unwords ["epFieldsToEncoding: invalid field: RunAltThrow:", show (fromSing serr)]
-          RunAltExcept (WrapSing serr) ->
-            error . fromString $
-            unwords ["epFieldsToEncoding: invalid field: RunAltExcept:", show (fromSing serr)]
-          RunPureAltE (Comp1 (I yss)) ->
-            case sEpFieldT (sing @t) (sing @ann) sepPath sfieldName of
-              SPureAltE st ->
-                assertOpAbsense (singFromTOpq st) $
-                withDict1 st $ toJSON $
-                SomeValueOpq yss
-      )
+-- epFieldsToEncoding :: forall t ann epPath. (SingI t, SingI ann)
+--     => Sing epPath
+--     -> NP (EpField I t ann epPath) (ListEToErrM (EpFieldNames t ann epPath)) -- (EpFieldNames ann epPath)
+--     -> Aeson.Value
+-- epFieldsToEncoding sepPath xss =
+--   object $
+--   withDict (singAllSingI $ sEpFieldNames (sing @ann) sepPath) $
+--   SOP.hcollapse $
+--   SOP.hmap mapper xss
+--     where
+--     mapper :: forall fieldName. EpField I t ann epPath fieldName -> K (Text, Aeson.Value) fieldName
+--     mapper (EpField sfieldName ys) = K
+--       ( fromSing sfieldName
+--       , case ys of
+--           RunAltThrow (WrapSing serr) ->
+--             error . fromString $
+--             unwords ["epFieldsToEncoding: invalid field: RunAltThrow:", show (fromSing serr)]
+--           RunAltExcept (WrapSing serr) ->
+--             error . fromString $
+--             unwords ["epFieldsToEncoding: invalid field: RunAltExcept:", show (fromSing serr)]
+--           RunPureAltE (Comp1 (I yss)) ->
+--             case sEpFieldT (sing @t) (sing @ann) sepPath sfieldName of
+--               SPureAltE st ->
+--                 assertOpAbsense (singFromTOpq st) $
+--                 withDict1 st $ toJSON $
+--                 SomeValueOpq yss
+--       )
 
-instance (SingI t, SingI ann) => ToJSON (EpValue t ann) where
-  toJSON xs = object
-    [ "path" .= epValuePath (sing @t) (sing @ann) xs
-    , "fields" .= (epValueFields (epFieldsToEncoding @t @ann) (sing @t) (sing @ann) xs)
-    ]
+-- instance (SingI t, SingI ann) => ToJSON (EpValue t ann) where
+--   toJSON xs = object
+--     [ "path" .= epValuePath (sing @t) (sing @ann) xs
+--     , "fields" .= (epValueFields (epFieldsToEncoding @t @ann) (sing @t) (sing @ann) xs)
+--     ]
 
-  toEncoding xs = pairs $
-    "path" .= epValuePath (sing @t) (sing @ann) xs <>
-    "fields" .= (epValueFields (epFieldsToEncoding @t @ann) (sing @t) (sing @ann) xs)
+--   toEncoding xs = pairs $
+--     "path" .= epValuePath (sing @t) (sing @ann) xs <>
+--     "fields" .= (epValueFields (epFieldsToEncoding @t @ann) (sing @t) (sing @ann) xs)
 
 
 

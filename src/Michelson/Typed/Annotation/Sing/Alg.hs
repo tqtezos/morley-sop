@@ -13,6 +13,7 @@ import Text.Show
 
 import Data.Singletons
 import Data.Singletons.Prelude
+import Data.Singletons.Prelude.Applicative
 import Data.Singletons.Prelude.Bool
 import Data.Singletons.Prelude.IsString
 import Data.Singletons.TH
@@ -22,6 +23,7 @@ import Michelson.Typed.T (CT(..))
 import Michelson.Typed.T.Alg
 import Data.Constraint.HasDict1
 
+import Data.Singletons.Prelude.Monad.State
 import Michelson.Typed.Annotation.Sing (Annotated)
 import Michelson.Typed.Annotation.Sing.Opq
 import qualified Michelson.Typed.Annotation.Sing as Michelson
@@ -44,6 +46,12 @@ $(singletons [d|
     showsPrec d (ATPair x1 x2 x3 x4 x5) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATPair" d (x1, x2, x3, x4, x5)
     showsPrec d (ATOr x1 x2 x3 x4 x5) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATOr" d (x1, x2, x3, x4, x5)
     showsPrec d (ATOpq x1) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATOpq" d x1
+
+  traverseAnnotatedAlg :: (a -> State' s b) -> AnnotatedAlg a t -> State' s (AnnotatedAlg b t)
+  traverseAnnotatedAlg fs (ATPair x1 x2 x3 x4 x5) = ATPair <$$> fs x1 <<*>> fs x2 <<*>> fs x3 <<*>> traverseAnnotatedAlg fs x4 <<*>> traverseAnnotatedAlg fs x5
+  traverseAnnotatedAlg fs (ATOr x1 x2 x3 x4 x5) = ATOr <$$> fs x1 <<*>> fs x2 <<*>> fs x3 <<*>> traverseAnnotatedAlg fs x4 <<*>> traverseAnnotatedAlg fs x5
+  traverseAnnotatedAlg fs (ATOpq x1) = ATOpq <$$> traverseAnnotatedOpq fs x1
+
   |])
 
 data instance Sing :: AnnotatedAlg a t -> Type where

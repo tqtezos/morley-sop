@@ -23,29 +23,29 @@ $(singletonsOnly [d|
        " but got ",
        fieldNameB]
 
-  -- epFieldTAssertHereError :: Show a => a -> EpPath -> Symbol
-  epFieldTAssertHereError :: Show a => a -> EpPath -> Symbol
-  epFieldTAssertHereError t nonHere =
-    unlines ["EpFieldTAssertHereError ", show_ t, " ", show_ nonHere]
+  -- epFieldRecAssertHereError :: Show a => a -> EpPath -> Symbol
+  epFieldRecAssertHereError :: Show a => a -> EpPath -> Symbol
+  epFieldRecAssertHereError t nonHere =
+    unlines ["EpFieldRecAssertHereError ", show_ t, " ", show_ nonHere]
 
-  epFieldTEntrypointError :: Show b => b -> EpPath -> Symbol -> Symbol -> Symbol -> Symbol
-  epFieldTEntrypointError ann epPath fieldName entrypointNameA entrypointNameB = unlines
-    ["EpFieldT _ ", show_ ann, " ",
+  epFieldRecEntrypointError :: Show b => b -> EpPath -> Symbol -> Symbol -> Symbol -> Symbol
+  epFieldRecEntrypointError ann epPath fieldName entrypointNameA entrypointNameB = unlines
+    ["EpFieldRec _ ", show_ ann, " ",
     show_ epPath, " ", fieldName,
     " _ _: expected ", entrypointNameA,
     " but got ", entrypointNameB]
 
-  epFieldTResolveOrError :: (Show a, Show b) => Symbol -> Symbol -> a -> b -> EpPath -> Symbol -> Symbol
-  epFieldTResolveOrError aa ab as bs nonOrEpPath fieldName = unlines
-    ["EpFieldTResolveOr _ _ ", show_ aa,
+  epFieldRecResolveOrError :: (Show a, Show b) => Symbol -> Symbol -> a -> b -> EpPath -> Symbol -> Symbol
+  epFieldRecResolveOrError aa ab as bs nonOrEpPath fieldName = unlines
+    ["EpFieldRecResolveOr _ _ ", show_ aa,
     " ", show_ ab,
     " ", show_ as,
     " ", show_ bs, " ",
     show_ nonOrEpPath, " ", fieldName]
 
-  epFieldTResolvePairError :: (Show a, Show b) => a -> b -> EpPath -> Symbol -> Symbol
-  epFieldTResolvePairError as bs nonOrEpPath fieldName = unlines
-    ["EpFieldTResolvePair _ _ ", show_ as,
+  epFieldRecResolvePairError :: (Show a, Show b) => a -> b -> EpPath -> Symbol -> Symbol
+  epFieldRecResolvePairError as bs nonOrEpPath fieldName = unlines
+    ["EpFieldRecResolvePair _ _ ", show_ as,
     " ", show_ bs, " ",
     show_ nonOrEpPath, " ", fieldName]
 

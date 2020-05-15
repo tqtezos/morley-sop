@@ -33,6 +33,7 @@ import Data.Constraint
 
 import Control.AltError
 import Data.AltError
+import Data.ListError
 import Data.AltError.Run
 
 import Data.Constraint.HasDict1
@@ -228,7 +229,7 @@ epValuePath _st sann (EpValue xs) =
 epValueFields :: forall (t :: TAlg) (ann :: SymAnn t) r. ()
   => (forall (epPath :: EpPath). ()
     => Sing epPath
-    -> NP (EpField I t ann epPath) (EpFieldNames ann epPath)
+    -> RunAltE WrappedSing (NP (EpField I t ann epPath)) (ListEToErrM (EpFieldNames t ann epPath)) -- NP (EpField I t ann epPath) (EpFieldNames t ann epPath)
     -> r)
   -> Sing t
   -> Sing ann

@@ -28,6 +28,7 @@ import Michelson.Typed.Instr
 
 import Control.AltError
 import Data.AltError
+import Data.ListError
 import Data.AltError.Run
 import Data.Singletons.WrappedSing
 
@@ -43,6 +44,7 @@ import Michelson.Typed.T.Alg
 import Michelson.Typed.Value.Free
 import Michelson.Typed.Value.Parse
 import qualified Michelson.Typed.Annotation.Sing as Michelson
+import qualified Michelson.Typed.Annotation.Sing.Notes as Michelson
 
 
 import Data.Singletons
@@ -99,18 +101,21 @@ parseValueOpq label =
 parseEpField :: forall f t ann epPath fieldName. (Applicative f, (forall (x :: TOpq). SingI x => (Show (f (ValueOpq x)))), SingI t, SingI ann, SingI epPath, SingI fieldName)
   => Parser (EpField f t ann epPath fieldName)
 parseEpField =
-  withDict1 (sEpFieldT (sing @t) (sing @ann) (sing @epPath) (sing @fieldName)) $
+  withDict1 (sEpFieldT @ErrM (sing @t) (sing @ann) (sing @epPath) (sing @fieldName)) $
   EpField (sing @fieldName) . join traceShow' <$>
-  parseRunAltE (pure $ WrapSing sing) (Comp1 . pure <$> parseValueOpq (T.unpack $ fromSing (sing @fieldName)))
+  parseRunAltE (pure $ WrapSing sing) (Comp1 . pure <$> parseValueOpq (T.unpack $ fromSing (sing @fieldName))) sing
 
 parseEpFields :: forall f t ann epPath. (Applicative f, (forall (x :: TOpq). SingI x => (Show (f (ValueOpq x)))), SingI t, SingI ann, SingI epPath)
   => Mod CommandFields (EpFields f t ann epPath)
 parseEpFields =
   command (show $ fromSing (sing @epPath)) . flip info mempty $
-  traceShow' (fromSing $ sEpFieldNames (sing @ann) (sing @epPath)) $
-  withDict1 (sEpFieldNames (sing @ann) (sing @epPath)) $
+  traceShow' (fromSing $ sListEToErrM $ sEpFieldNames (sing @t) (sing @ann) (sing @epPath)) $
+  -- withDict1 (sEpFieldNames (sing @ann) (sing @epPath)) $
   EpFields (sing @epPath) <$>
-  parseNP parseEpField
+  parseRunAltE @_ @WrappedSing @_ @Parser @(ListEToErrM (EpFieldNames t ann epPath))
+    (pure $ WrapSing sing)
+    (parseNP parseEpField)
+    (sListEToErrM (sEpFieldNames (sing @t) (sing @ann) (sing @epPath)))
 
 parserResultHelp :: AltError [String] m => ParserResult a -> m ParserHelp
 parserResultHelp (Success _) = altFail ["parserResultHelp: Success"]
@@ -224,14 +229,18 @@ parsePrintValueFromContract = do
       showHelpOnError <>
       showHelpOnEmpty
 
-exampleParseEpValue :: [String] -> IO ()
-exampleParseEpValue xs =
-  case toSing (Michelson.annotatedFromNotes (epdNotes @EpdPlain @ExampleParam)) of
-    SomeSing (sann :: Sing ann) ->
-      let sann' = singToAnnotatedAlg sann in
-        withDict1 sann' $
-        handleParseResult (execParserPure (prefs showHelpOnError) (info (snd $ parseEpValue @(ToTAlg (ToT ExampleParam)) @(ToAnnotatedAlg ann)) fullDesc) xs) >>=
-        putStrLn . encode
+-- exampleParseEpValue :: [String] -> IO ()
+-- exampleParseEpValue xs =
+--   case toSing (Michelson.annotatedFromNotes (epdNotes @EpdPlain @ExampleParam)) of
+--     SomeSing (sann :: Sing ann) ->
+--       let sann' = singToAnnotatedAlg sann in
+--         withDict1 sann' $
+--         handleParseResult (execParserPure (prefs showHelpOnError) (info (snd $ parseEpValue @(ToTAlg (ToT ExampleParam)) @(ToAnnotatedAlg ann)) fullDesc) xs) >>=
+--         putStrLn . encode
+
+
+
+
 
 
 -- > exampleParseEpValue ["(:+) \"get\" Here", "--help"]

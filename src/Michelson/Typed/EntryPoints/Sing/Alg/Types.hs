@@ -7,7 +7,8 @@ module Michelson.Typed.EntryPoints.Sing.Alg.Types where
 import Prelude hiding (unwords, show)
 
 import Control.AltError
-import Data.AltError
+-- import Data.AltError
+-- import Data.ListError
 
 import Michelson.Typed.Annotation.Path
 import Michelson.Typed.EntryPoints.Error
@@ -17,52 +18,73 @@ import Michelson.Typed.T.Alg
 
 import Data.Singletons.TH
 import Data.Singletons.TypeLits
+import Data.Singletons.Prelude.Applicative
+import Data.Singletons.Prelude.Semigroup
+import Data.Singletons.Prelude.Bool
 
+-- tt = _
 
 type SymAnn = AnnotatedAlg Symbol
 
 $(singletonsOnly [d|
 
-  -- Either we have the expected field and return the input or fail with `EpFieldTFieldError`
-  epFieldTFieldEq :: TOpq -> Symbol -> Symbol -> Bool -> ErrM TOpq
-  epFieldTFieldEq t _ _ True = pure t
-  epFieldTFieldEq _ fieldNameA fieldNameB False = altErr [epFieldTFieldError fieldNameA fieldNameB]
+  epFieldRecResolveOr :: forall f r ta tb. (AltError [Symbol] f, Show r) => (Symbol, TOpq -> Symbol -> f r) -> (TAlg, TAlg) -> (Symbol, Symbol) -> SymAnn ta -> SymAnn tb -> EpPath -> f r
+  epFieldRecResolveOr (name, fs) (ta, tb) (aa, ab) as bs ((:+) entrypointName epPath) =
+    bool_
+      (altErr [epFieldRecEntrypointError as epPath name aa entrypointName])
+      (epFieldRec name fs ta as epPath)
+      (aa == entrypointName) <||>
+    bool_
+      (altErr [epFieldRecEntrypointError bs epPath name ab entrypointName])
+      (epFieldRec name fs tb bs epPath)
+      (ab == entrypointName)
+  epFieldRecResolveOr (name, _fs) _tab (aa, ab) as bs ((:*) xs ys) =
+    altFail [epFieldRecResolveOrError aa ab as bs ((:*) xs ys) name]
+  epFieldRecResolveOr (name, _fs) _tab (aa, ab) as bs Here =
+    altFail [epFieldRecResolveOrError aa ab as bs Here name]
 
-  -- This fails with an error, because otherwise the @epPath@ is invalid
-  epFieldTAssertHere :: TOpq -> EpPath -> ErrM TOpq -> ErrM TOpq
-  epFieldTAssertHere _ _ (AltThrow xs) = AltThrow xs
-  epFieldTAssertHere _ _ (AltExcept xs) = AltExcept xs
-  epFieldTAssertHere _ Here (PureAltE xs) = PureAltE xs
-  epFieldTAssertHere t ((:*) xs ys) (PureAltE _) = altFail [epFieldTAssertHereError t ((:*) xs ys)]
-  epFieldTAssertHere t ((:+) xs ys) (PureAltE _) = altFail [epFieldTAssertHereError t ((:+) xs ys)]
+  epFieldRecResolvePair :: forall f r ta tb. (AltError [Symbol] f, Show r) => Symbol -> (TOpq -> Symbol -> f r) -> TAlg -> TAlg -> SymAnn ta -> SymAnn tb -> EpPath -> f r
+  epFieldRecResolvePair name fs ta tb as bs ((:*) epPathA epPathB) =
+    epFieldRec name fs ta as epPathA <||>
+    epFieldRec name fs tb bs epPathB
+  epFieldRecResolvePair name _fs _ta _tb as bs ((:+) xs ys) =
+    altFail [epFieldRecResolvePairError as bs ((:+) xs ys) name]
+  epFieldRecResolvePair name _fs _ta _tb as bs Here =
+    altFail [epFieldRecResolvePairError as bs Here name]
 
-  epFieldTEntrypointEq :: forall t. TAlg -> SymAnn t -> EpPath -> Symbol -> Symbol -> Symbol -> Bool -> ErrM TOpq
-  epFieldTEntrypointEq t ann epPath fieldName _ _ True = epFieldT t ann epPath fieldName
-  epFieldTEntrypointEq _ ann epPath fieldName entrypointNameA entrypointNameB False =
-    altErr [epFieldTEntrypointError ann epPath fieldName entrypointNameA entrypointNameB]
+  epFieldRec :: forall f r t. (AltError [Symbol] f, Show r) => Symbol -> (TOpq -> Symbol -> f r) -> TAlg -> SymAnn t -> EpPath -> f r
+  epFieldRec name fs (TOr ta tb) (ATOr _ aa ab as bs) epPath = epFieldRecResolveOr (name, fs) (ta, tb) (aa, ab) as bs epPath
+  epFieldRec name fs (TPair ta tb) (ATPair _ _ _ as bs) epPath = epFieldRecResolvePair name fs ta tb as bs epPath
+  epFieldRec _name fs (TOpq t1) (ATOpq ta) epPath =
+    bool_ (altFail [epFieldRecAssertHereError t1 epPath]) (pure ()) (epPath == Here) *>
+    (fs t1 (tOpqTypeAnn ta))
 
-  epFieldTResolveOr :: forall ta tb. (TAlg, TAlg) -> Symbol -> Symbol -> SymAnn ta -> SymAnn tb -> EpPath -> Symbol -> ErrM TOpq
-  epFieldTResolveOr (ta, tb) aa ab as bs ((:+) entrypointName epPath) fieldName =
-    epFieldTEntrypointEq ta as epPath fieldName aa entrypointName (aa == entrypointName) <||>
-    epFieldTEntrypointEq tb bs epPath fieldName ab entrypointName (ab == entrypointName)
-  epFieldTResolveOr _ aa ab as bs ((:*) xs ys) fieldName =
-    altFail [epFieldTResolveOrError aa ab as bs ((:*) xs ys) fieldName]
-  epFieldTResolveOr _ aa ab as bs Here fieldName =
-    altFail [epFieldTResolveOrError aa ab as bs Here fieldName]
 
-  epFieldTResolvePair :: forall ta tb. TAlg -> TAlg -> SymAnn ta -> SymAnn tb -> EpPath -> Symbol -> ErrM TOpq
-  epFieldTResolvePair ta tb as bs ((:*) epPathA epPathB) fieldName =
-    epFieldT ta as epPathA fieldName <||>
-    epFieldT tb bs epPathB fieldName
-  epFieldTResolvePair _ _ as bs ((:+) xs ys) fieldName =
-    altFail [epFieldTResolvePairError as bs ((:+) xs ys) fieldName]
-  epFieldTResolvePair _ _ as bs Here fieldName =
-    altFail [epFieldTResolvePairError as bs Here fieldName]
+  -- helper for epFieldT
+  epFieldRecT :: forall f. AltError [Symbol] f => Symbol -> TOpq -> Symbol -> f TOpq
+  epFieldRecT fieldName ta fieldNameA =
+    bool_
+      (altErr [epFieldTFieldError fieldName fieldNameA])
+      (pure ta)
+      (fieldName == fieldNameA)
 
-  epFieldT :: forall t. TAlg -> SymAnn t -> EpPath -> Symbol -> ErrM TOpq
-  epFieldT (TOr ta tb) (ATOr _ aa ab as bs) epPath fieldName = epFieldTResolveOr (ta, tb) aa ab as bs epPath fieldName
-  epFieldT (TPair ta tb) (ATPair _ _ _ as bs) epPath fieldName = epFieldTResolvePair ta tb as bs epPath fieldName
-  epFieldT (TOpq t1) (ATOpq ta) epPath tb = epFieldTAssertHere t1 epPath (epFieldTFieldEq t1 (tOpqTypeAnn ta) tb (tOpqTypeAnn ta == tb))
+  epFieldTResolveOr :: forall f ta tb. AltError [Symbol] f => (TAlg, TAlg) -> (Symbol, Symbol) -> SymAnn ta -> SymAnn tb -> EpPath -> Symbol -> f TOpq
+  epFieldTResolveOr (ta, tb) (aa, ab) as bs epPath fieldName = epFieldRecResolveOr (fieldName, epFieldRecT fieldName) (ta, tb) (aa, ab) as bs epPath
+
+  epFieldTResolvePair :: forall f ta tb. AltError [Symbol] f => TAlg -> TAlg -> SymAnn ta -> SymAnn tb -> EpPath -> Symbol -> f TOpq
+  epFieldTResolvePair ta tb as bs epPath fieldName = epFieldRecResolvePair fieldName (epFieldRecT fieldName) ta tb as bs epPath
+
+  epFieldT :: forall f t. AltError [Symbol] f => TAlg -> SymAnn t -> EpPath -> Symbol -> f TOpq
+  epFieldT t ann epPath fieldName = epFieldRec fieldName (epFieldRecT fieldName) t ann epPath
+
+
+  -- helper for epFields
+  epFieldRecFields :: forall f. AltError [Symbol] f => TOpq -> Symbol -> f Symbol
+  epFieldRecFields _t = pure
+
+  epFieldNames :: forall f t. AltError [Symbol] f => TAlg -> SymAnn t -> EpPath -> f Symbol
+  epFieldNames = epFieldRec "epFieldNames" epFieldRecFields
+
 
   |])
 

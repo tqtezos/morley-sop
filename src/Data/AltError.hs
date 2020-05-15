@@ -28,6 +28,8 @@ import Data.Singletons
 import Data.Singletons.TypeLits
 import Data.Singletons.Prelude.Bool
 import Data.Singletons.Prelude.Show
+import Data.Singletons.Prelude.Monad
+import Data.Singletons.Prelude.Function
 import Data.Singletons.TH
 
 
@@ -188,6 +190,10 @@ $(singletonsOnly [d|
 
     altErr = AltThrow
     altFail = AltExcept
+
+  instance Monad (AltE [Symbol]) where
+    (>>=) = flip (caseAltE throwAlt)
+
 
   |])
 
