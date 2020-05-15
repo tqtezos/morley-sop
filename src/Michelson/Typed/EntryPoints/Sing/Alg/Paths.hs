@@ -18,14 +18,21 @@ import Michelson.Typed.EntryPoints.Sing.Alg.Types
 import Michelson.Typed.Annotation.Sing.Alg
 
 import Data.Singletons.TH
+import Data.Singletons.Prelude.Bool
 import Data.Singletons.Prelude.List
 import Data.Singletons.Prelude.Functor
 
 $(singletonsOnly [d|
   epPathsRaw :: forall t. SymAnn t -> [EpPath]
   epPathsRaw (ATOr _ aa ab as bs) =
-    ((:+) aa <$> epPathsRaw as) ++
-    ((:+) ab <$> epPathsRaw bs)
+    bool_
+      ((:+) aa <$> epPathsRaw as)
+      (epPathsRaw as)
+      (aa == "") ++
+    bool_
+      ((:+) ab <$> epPathsRaw bs)
+      (epPathsRaw bs)
+      (ab == "")
   epPathsRaw (ATPair _ _ _ as bs) = liftA2 (:*) (epPathsRaw as) (epPathsRaw bs)
   epPathsRaw (ATOpq _ta) = [Here]
 

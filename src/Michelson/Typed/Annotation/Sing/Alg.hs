@@ -47,10 +47,31 @@ $(singletons [d|
     showsPrec d (ATOr x1 x2 x3 x4 x5) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATOr" d (x1, x2, x3, x4, x5)
     showsPrec d (ATOpq x1) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATOpq" d x1
 
-  traverseAnnotatedAlg :: (a -> State' s b) -> AnnotatedAlg a t -> State' s (AnnotatedAlg b t)
-  traverseAnnotatedAlg fs (ATPair x1 x2 x3 x4 x5) = ATPair <$$> fs x1 <<*>> fs x2 <<*>> fs x3 <<*>> traverseAnnotatedAlg fs x4 <<*>> traverseAnnotatedAlg fs x5
-  traverseAnnotatedAlg fs (ATOr x1 x2 x3 x4 x5) = ATOr <$$> fs x1 <<*>> fs x2 <<*>> fs x3 <<*>> traverseAnnotatedAlg fs x4 <<*>> traverseAnnotatedAlg fs x5
-  traverseAnnotatedAlg fs (ATOpq x1) = ATOpq <$$> traverseAnnotatedOpq fs x1
+  -- traverseAnnotatedAlg :: (a -> State' s b) -> AnnotatedAlg a t -> State' s (AnnotatedAlg b t)
+  -- traverseAnnotatedAlg fs (ATPair x1 x2 x3 x4 x5) = ATPair <$$> fs x1 <<*>> fs x2 <<*>> fs x3 <<*>> traverseAnnotatedAlg fs x4 <<*>> traverseAnnotatedAlg fs x5
+  -- traverseAnnotatedAlg fs (ATOr x1 x2 x3 x4 x5) = ATOr <$$> fs x1 <<*>> fs x2 <<*>> fs x3 <<*>> traverseAnnotatedAlg fs x4 <<*>> traverseAnnotatedAlg fs x5
+  -- traverseAnnotatedAlg fs (ATOpq x1) = ATOpq <$$> traverseAnnotatedOpq fs x1
+
+  -- -- (isField -> currentPath -> currentAnnotation -> newAnnotation)
+  -- traverseAnnotatedAlg :: (Bool -> Path a -> a -> State' s a) -> AnnotatedAlg a t -> Path a -> State' s (AnnotatedAlg a t)
+  -- traverseAnnotatedAlg fs (ATPair x1 x2 x3 x4 x5) epPath = ATPair <$$>
+  --   pureState' x1 <<*>>
+  --   pureState' x2 <<*>>
+  --   pureState' x3 <<*>>
+  --   traverseAnnotatedAlg fs x4 epPath <<*>>
+  --   traverseAnnotatedAlg fs x5 epPath
+
+  -- -- this case gets us entrypoint deduplication
+  -- traverseAnnotatedAlg fs (ATOr x1 x2 x3 x4 x5) epPath = ATOr <$$>
+  --   pureState' x1 <<*>>
+  --   fs False epPath x2 <<*>>
+  --   fs False epPath x3 <<*>>
+  --   traverseAnnotatedAlg fs x4 (x2 :+ epPath) <<*>>
+  --   traverseAnnotatedAlg fs x5 (x3 :+ epPath)
+
+  -- -- this case gets us field deduplication
+  -- traverseAnnotatedAlg fs (ATOpq x1) epPath = ATOpq <$$>
+  --   fs True epPath (tOpqTypeAnn x1)
 
   |])
 
@@ -142,6 +163,7 @@ $(singletonsOnly [d|
   setTypeAnn as (ATMap _ta xs ys) = ATMap as xs ys
   setTypeAnn as (ATBigMap _ta xs ys) = ATBigMap as xs ys
 
+
   propagateTypeAnn ::
        forall a t. (Eq a, IsString a)
     => a
@@ -161,8 +183,6 @@ $(singletonsOnly [d|
   fieldToTypeAnn (ATPair ta tb tc xs ys) = ATPair ta tb tc (propagateTypeAnn tb xs) (propagateTypeAnn tc ys)
   fieldToTypeAnn (ATOr ta tb tc xs ys) = ATOr ta tb tc (fieldToTypeAnn xs) (fieldToTypeAnn ys) -- (propagateTypeAnn tb xs) (propagateTypeAnn tc ys)
   fieldToTypeAnn (ATOpq xs) = ATOpq xs
-
-
 
   |])
 

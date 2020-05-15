@@ -172,33 +172,47 @@ lensEpFieldTResolveOr :: forall f ta tb aa ab (as :: SymAnn ta) (bs :: SymAnn tb
   -> Sing epPath
   -> Sing fieldName
   -> Lens' (ValueAlgT f ta, ValueAlgT f tb) (RunSingValueOpq f (EpFieldTResolveOr '(ta, tb) '(aa, ab) as bs epPath fieldName))
-lensEpFieldTResolveOr ta tb aa ab as bs epPath'@((:%+) entrypointName epPath) fieldName fs xs =
+lensEpFieldTResolveOr ta tb aa ab as bs ((:%+) entrypointName epPath) fieldName fs xs =
   lensRunAltEAppendErrM
     ta
     tb
     (sBool_
-      (sAltErr (sEpFieldRecEntrypointError as epPath fieldName aa entrypointName `SCons` SNil))
-      (sEpFieldT ta as epPath fieldName)
-      (aa %== entrypointName)
+      (sBool_
+        (sAltErr (sEpFieldRecEntrypointError as epPath fieldName aa entrypointName `SCons` SNil))
+        (sEpFieldT ta as epPath fieldName)
+        (aa %== entrypointName)
+      )
+      (sEpFieldT ta as (entrypointName :%+ epPath) fieldName)
+      (aa %== sing @"")
     )
     (sBool_
-      (sAltErr (sEpFieldRecEntrypointError bs epPath fieldName ab entrypointName `SCons` SNil))
-      (sEpFieldT tb bs epPath fieldName)
-      (ab %== entrypointName)
+      (sBool_
+        (sAltErr (sEpFieldRecEntrypointError bs epPath fieldName ab entrypointName `SCons` SNil))
+        (sEpFieldT tb bs epPath fieldName)
+        (ab %== entrypointName)
+      )
+      (sEpFieldT tb bs (entrypointName :%+ epPath) fieldName)
+      (ab %== sing @"")
     )
-    (\gs ys -> case aa %== entrypointName of
+    (\gs ys -> case aa %== sing @"" of
        STrue ->
-         (lensEpFieldT ta as epPath fieldName) gs ys
-       SFalse ->
-         fmap (flip altErrValueAlgT ta . fromUnwrapSing . unRunAltThrow) . gs . RunAltThrow . WrapSing $
-         sEpFieldRecEntrypointError as epPath fieldName aa entrypointName `SCons` SNil
+         (lensEpFieldT ta as (entrypointName :%+ epPath) fieldName) gs ys
+       SFalse -> case aa %== entrypointName of
+         STrue ->
+           (lensEpFieldT ta as epPath fieldName) gs ys
+         SFalse ->
+           fmap (flip altErrValueAlgT ta . fromUnwrapSing . unRunAltThrow) . gs . RunAltThrow . WrapSing $
+           sEpFieldRecEntrypointError as epPath fieldName aa entrypointName `SCons` SNil
     )
-    (\gs ys -> case ab %== entrypointName of
+    (\gs ys -> case ab %== sing @"" of
        STrue ->
-         (lensEpFieldT tb bs epPath fieldName) gs ys
-       SFalse ->
-         fmap (flip altErrValueAlgT tb . fromUnwrapSing . unRunAltThrow) . gs . RunAltThrow . WrapSing $
-         sEpFieldRecEntrypointError bs epPath fieldName ab entrypointName `SCons` SNil
+           (lensEpFieldT tb bs (entrypointName :%+ epPath) fieldName) gs ys
+       SFalse -> case ab %== entrypointName of
+         STrue ->
+           (lensEpFieldT tb bs epPath fieldName) gs ys
+         SFalse ->
+           fmap (flip altErrValueAlgT tb . fromUnwrapSing . unRunAltThrow) . gs . RunAltThrow . WrapSing $
+           sEpFieldRecEntrypointError bs epPath fieldName ab entrypointName `SCons` SNil
     )
     fs
     xs

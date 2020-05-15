@@ -24,7 +24,6 @@ import Data.Singletons.WrappedSing
 
 import Michelson.Typed.EntryPoints.Sing.Alg
 import Michelson.Typed.EntryPoints.Sing.Alg.Field
-import Michelson.Typed.EntryPoints.Sing.Alg.FieldNames
 import Michelson.Typed.EntryPoints.Sing.Alg.Types
 import Michelson.Typed.T.Alg
 import Michelson.Typed.Value.Free

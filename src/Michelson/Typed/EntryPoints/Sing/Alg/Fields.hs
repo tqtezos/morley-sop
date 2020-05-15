@@ -12,7 +12,6 @@ import Prelude hiding (Map, All, unwords, show, set)
 
 import Control.AltError
 import Data.AltError
-import Data.ListError
 import Data.AltError.Run
 
 import Michelson.Typed.Annotation.Path
@@ -20,7 +19,6 @@ import Michelson.Typed.Annotation.Path
 import Michelson.Typed.T.Alg
 import Michelson.Typed.Value.Free
 import Michelson.Typed.EntryPoints.Sing.Alg.Types
-import Michelson.Typed.EntryPoints.Sing.Alg.FieldNames
 import Michelson.Typed.EntryPoints.Sing.Alg.Field
 import Michelson.Typed.EntryPoints.Sing.Alg.Lens
 import Data.Constraint.HasDict1
@@ -30,11 +28,7 @@ import Control.Lens.Setter
 import Data.SOP (I(..), NP)
 import qualified Data.SOP as SOP
 import Data.Singletons
-import Data.Singletons.TypeLits
 import Data.Singletons.Prelude.List
-import Data.Singletons.Prelude.Traversable
-import Data.Singletons.Prelude.Functor
-import Data.Singletons.Prelude.Monad
 import Data.Constraint
 
 data EpFields (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) where
@@ -69,9 +63,9 @@ unwrapEpFields :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPa
   -> Sing ann
   -> EpFields f t ann epPath
   -> f (EpFields I t ann epPath)
-unwrapEpFields st sann (EpFields sepPath (RunAltThrow xs)) =
+unwrapEpFields _st _sann (EpFields sepPath (RunAltThrow xs)) =
   EpFields sepPath . RunAltThrow <$> pure xs
-unwrapEpFields st sann (EpFields sepPath (RunAltExcept xs)) =
+unwrapEpFields _st _sann (EpFields sepPath (RunAltExcept xs)) =
   EpFields sepPath . RunAltExcept <$> pure xs
 unwrapEpFields st sann (EpFields sepPath (RunPureAltE xs)) =
   case sEpFieldNamesErrM st sann sepPath of

@@ -18,8 +18,7 @@ import GHC.Generics ((:.:)(..))
 import Text.Show
 import System.Environment (getArgs)
 
-import Lorentz (IsoValue(..), EpdPlain, Value)
-import Lorentz.EntryPoints.Core
+import Lorentz (Value)
 import Michelson.Typed.Scope
 import Michelson.Printer
 import qualified Michelson.TypeCheck.Types as TypeCheck
@@ -32,18 +31,20 @@ import Data.ListError
 import Data.AltError.Run
 import Data.Singletons.WrappedSing
 
+
+import Data.Singletons.Map
+
+
 import Michelson.Typed.Annotation.Sing.Alg
 import Michelson.Typed.EntryPoints.Sing.Alg
-import Michelson.Typed.EntryPoints.Sing.Alg.Aeson (ExampleParam, assertOpAbsense)
+import Michelson.Typed.EntryPoints.Sing.Alg.Aeson (assertOpAbsense) -- ExampleParam,
 import Michelson.Typed.EntryPoints.Sing.Alg.Field
-import Michelson.Typed.EntryPoints.Sing.Alg.FieldNames
 import Michelson.Typed.EntryPoints.Sing.Alg.Fields
 import Michelson.Typed.EntryPoints.Sing.Alg.Paths
 import Michelson.Typed.EntryPoints.Sing.Alg.Types
 import Michelson.Typed.T.Alg
 import Michelson.Typed.Value.Free
 import Michelson.Typed.Value.Parse
-import qualified Michelson.Typed.Annotation.Sing as Michelson
 import qualified Michelson.Typed.Annotation.Sing.Notes as Michelson
 
 
@@ -55,7 +56,7 @@ import Data.Constraint.HasDict1
 import Data.SOP (NP, NS)
 import qualified Data.SOP as SOP
 
-import Data.Aeson hiding (Value, Success)
+-- import Data.Aeson hiding (Value, Success)
 import Options.Applicative
 import Options.Applicative.Help (renderHelp) -- (parserUsage, putDoc, renderPretty, displayS)
 -- import qualified Data.ByteString.Lazy as BL
