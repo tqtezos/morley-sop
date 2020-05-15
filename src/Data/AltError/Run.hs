@@ -46,22 +46,6 @@ unRunAltThrow (RunAltThrow  xs) = xs
 unRunAltExcept :: forall a (f :: [Symbol] -> Type) (g :: a -> Type) (xs :: [Symbol]). RunAltE f g ('AltExcept xs) -> f xs
 unRunAltExcept (RunAltExcept xs) = xs
 
--- coerceRunPureAltE :: forall f f' g xs. IsPureAltE xs ~ 'True => RunAltE f g xs -> RunAltE f' g xs
--- coerceRunPureAltE (RunPureAltE xs) = RunPureAltE xs
---
--- coerceRunImpureAltE :: forall f g g' xs. IsPureAltE xs ~ 'False => RunAltE f g xs -> RunAltE f g' xs
--- coerceRunImpureAltE (RunAltThrow xs) = RunAltThrow xs
--- coerceRunImpureAltE (RunAltExcept xs) = RunAltExcept xs
---
--- tryRunPureAltE :: forall f g (xs :: AltE [Symbol] a). Sing xs -> RunAltE f g xs -> Either String (RunAltE V1 g xs)
--- tryRunPureAltE sxs =
---   case sIsPureAltE sxs of
---     STrue -> Right . coerceRunPureAltE
---     SFalse -> \_ ->
---       case sxs of
---         SAltThrow sys -> Left (unlines (T.unpack <$> ("tryRunPureAltE AltThrow: " : fromSing sys)))
---         SAltExcept sys -> Left (unlines (T.unpack <$> ("tryRunPureAltE AltExcept: " : fromSing sys)))
-
 -- | Lift @(`<+>`)@ over `RunEither`
 runAltEAlt :: forall a f (xs :: AltE [Symbol] a) (ys :: AltE [Symbol] a). SShow a
   => Sing xs

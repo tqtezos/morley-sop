@@ -7,8 +7,8 @@ module Michelson.Typed.EntryPoints.Sing.Alg.Types where
 import Prelude hiding (unwords, show)
 
 import Control.AltError
--- import Data.AltError
--- import Data.ListError
+import Data.AltError
+import Data.ListError
 
 import Michelson.Typed.Annotation.Path
 import Michelson.Typed.EntryPoints.Error
@@ -19,6 +19,7 @@ import Michelson.Typed.T.Alg
 import Data.Singletons.TH
 import Data.Singletons.TypeLits
 import Data.Singletons.Prelude.Applicative
+import Data.Singletons.Prelude.Monad
 import Data.Singletons.Prelude.Semigroup
 import Data.Singletons.Prelude.Bool
 
@@ -74,6 +75,7 @@ $(singletonsOnly [d|
   epFieldTResolvePair :: forall f ta tb. AltError [Symbol] f => TAlg -> TAlg -> SymAnn ta -> SymAnn tb -> EpPath -> Symbol -> f TOpq
   epFieldTResolvePair ta tb as bs epPath fieldName = epFieldRecResolvePair fieldName (epFieldRecT fieldName) ta tb as bs epPath
 
+  -- The type of an entrypoint field
   epFieldT :: forall f t. AltError [Symbol] f => TAlg -> SymAnn t -> EpPath -> Symbol -> f TOpq
   epFieldT t ann epPath fieldName = epFieldRec fieldName (epFieldRecT fieldName) t ann epPath
 
@@ -82,9 +84,18 @@ $(singletonsOnly [d|
   epFieldRecFields :: forall f. AltError [Symbol] f => TOpq -> Symbol -> f Symbol
   epFieldRecFields _t = pure
 
+  -- All entrypoint field names
   epFieldNames :: forall f t. AltError [Symbol] f => TAlg -> SymAnn t -> EpPath -> f Symbol
   epFieldNames = epFieldRec "epFieldNames" epFieldRecFields
 
+  -- All entrypoint field names, in ErrM
+  epFieldNamesErrM :: forall t. TAlg -> SymAnn t -> EpPath -> ErrM [Symbol]
+  epFieldNamesErrM t ann epPath = listEToErrM (epFieldNames t ann epPath)
+
+  epFieldTs :: forall t. TAlg -> SymAnn t -> EpPath -> ErrM [TOpq]
+  epFieldTs t ann epPath =
+    epFieldNamesErrM t ann epPath >>=
+    traverse (epFieldT t ann epPath)
 
   |])
 
