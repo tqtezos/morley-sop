@@ -1,5 +1,7 @@
 {-# LANGUAGE InstanceSigs #-}
 
+{-# OPTIONS -Wno-missing-export-lists #-}
+
 module Data.AltError where
 
 import Data.Bool
@@ -49,9 +51,9 @@ $(singletons [d|
   |])
 
 instance Show2 AltE where
-  liftShowsPrec2 spStr _ spA _ d (PureAltE x) = showsUnaryWith spA "PureAltE" d x
-  liftShowsPrec2 spStr _ spA _ d (AltThrow x) = showsUnaryWith spStr "AltThrow" d x
-  liftShowsPrec2 spStr _ spA _ d (AltExcept x) = showsUnaryWith spStr "AltExcept" d x
+  liftShowsPrec2 _ _ spA _ d (PureAltE x) = showsUnaryWith spA "PureAltE" d x
+  liftShowsPrec2 spStr _ _ _ d (AltThrow x) = showsUnaryWith spStr "AltThrow" d x
+  liftShowsPrec2 spStr _ _ _ d (AltExcept x) = showsUnaryWith spStr "AltExcept" d x
 
 instance Show str => Show1 (AltE str) where
   liftShowsPrec = liftShowsPrec2 showsPrec showList
@@ -72,23 +74,8 @@ $(singletons [d|
 
   |])
 
-singIAltE :: forall str a (xs :: AltE str a). ()
-  => (forall (x :: str). Sing x -> Dict (SingI x))
-  -> (forall (x :: a). Sing x -> Dict (SingI x))
-  -> Sing xs
-  -> Dict (SingI xs)
-singIAltE _singIStr singIA (SPureAltE sxs) =
-  withDict (singIA sxs) $
-  Dict
-singIAltE singIStr _singIA (SAltThrow sxs) =
-  withDict (singIStr sxs) $
-  Dict
-singIAltE singIStr _singIA (SAltExcept sxs) =
-  withDict (singIStr sxs) $
-  Dict
-
 instance (HasDict1 str, HasDict1 a) => HasDict1 (AltE str a) where
-  evidence1 = singIAltE evidence1 evidence1
+  evidence1 = $(gen_evidence1 ''AltE)
 
 ---------------------------
 -- Applicative and AltError

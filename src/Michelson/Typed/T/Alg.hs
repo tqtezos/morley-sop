@@ -19,7 +19,7 @@ import Data.Singletons.TH
 import Data.Constraint
 import Control.DeepSeq
 
-import Michelson.Typed.T.Sing (singICT, singIT, singTypeableCT, singTypeableT)
+import Michelson.Typed.T.Sing (singTypeableCT, singTypeableT)
 import Data.Constraint.HasDict1
 
 
@@ -49,43 +49,8 @@ instance NFData TOpq
 $(genSingletons [''TOpq])
 $(singShowInstance ''TOpq)
 
--- | `HasDict1` for `T`
-singITOpq :: forall (t :: TOpq). Sing t -> Dict (SingI t)
-singITOpq (STc ct) =
-  withDict (singICT ct) $
-  Dict
-singITOpq STKey = Dict
-singITOpq STUnit = Dict
-singITOpq STSignature = Dict
-singITOpq STChainId = Dict
-singITOpq (STOption st) =
-  withDict (singIT st) $
-  Dict
-singITOpq (STList st) =
-  withDict (singIT st) $
-  Dict
-singITOpq (STSet st) =
-  withDict (singICT st) $
-  Dict
-singITOpq STOperation  = Dict
-singITOpq (STContract st) =
-  withDict (singIT st) $
-  Dict
-singITOpq (STLambda st su) =
-  withDict (singIT st) $
-  withDict (singIT su) $
-  Dict
-singITOpq (STMap st su) =
-  withDict (singICT st) $
-  withDict (singIT su) $
-  Dict
-singITOpq (STBigMap st su) =
-  withDict (singICT st) $
-  withDict (singIT su) $
-  Dict
-
 instance HasDict1 TOpq where
-  evidence1 = singITOpq
+  evidence1 = $(gen_evidence1 ''TOpq)
 
 -- | Algebraic `T`
 data TAlg
@@ -99,21 +64,8 @@ instance NFData TAlg
 $(genSingletons [''TAlg])
 $(singShowInstance ''TAlg)
 
-singITAlg :: forall (t :: TAlg). Sing t -> Dict (SingI t)
-singITAlg (STPair st su) =
-  withDict (singITAlg st) $
-  withDict (singITAlg su) $
-  Dict
-singITAlg (STOr st su) =
-  withDict (singITAlg st) $
-  withDict (singITAlg su) $
-  Dict
-singITAlg (STOpq st) =
-  withDict (singITOpq st) $
-  Dict
-
 instance HasDict1 TAlg where
-  evidence1 = singITAlg
+  evidence1 = $(gen_evidence1 ''TAlg)
 
 type family ToTAlg (t :: T) :: TAlg where
   ToTAlg ('Michelson.Tc t1) = 'TOpq ('Tc t1)
@@ -167,7 +119,7 @@ type family FromTOpq (t :: TOpq) = (r :: T) | r -> t where
 
 singFromTOpq :: Sing t -> Sing (FromTOpq t)
 singFromTOpq (STc t1) =
-  withDict (singICT t1) $
+  withDict1 t1 $
   withDict (singTypeableCT t1) $
   Michelson.STc t1
 singFromTOpq (STKey) = Michelson.STKey
@@ -175,37 +127,37 @@ singFromTOpq (STUnit) = Michelson.STUnit
 singFromTOpq (STSignature) = Michelson.STSignature
 singFromTOpq (STChainId) = Michelson.STChainId
 singFromTOpq (STOption t1) =
-  withDict (singIT t1) $
+  withDict1 t1 $
   withDict (singTypeableT t1) $
   Michelson.STOption t1
 singFromTOpq (STList t1) =
-  withDict (singIT t1) $
+  withDict1 t1 $
   withDict (singTypeableT t1) $
   Michelson.STList t1
 singFromTOpq (STSet t1) =
-  withDict (singICT t1) $
+  withDict1 t1 $
   withDict (singTypeableCT t1) $
   Michelson.STSet t1
 singFromTOpq (STOperation) = Michelson.STOperation
 singFromTOpq (STContract t1) =
-  withDict (singIT t1) $
+  withDict1 t1 $
   withDict (singTypeableT t1) $
   Michelson.STContract t1
 singFromTOpq (STLambda t1 t2) =
-  withDict (singIT t1) $
-  withDict (singIT t2) $
+  withDict1 t1 $
+  withDict1 t2 $
   withDict (singTypeableT t1) $
   withDict (singTypeableT t2) $
   Michelson.STLambda t1 t2
 singFromTOpq (STMap t1 t2) =
-  withDict (singICT t1) $
-  withDict (singIT  t2) $
+  withDict1 t1 $
+  withDict1 t2 $
   withDict (singTypeableCT t1) $
   withDict (singTypeableT  t2) $
   Michelson.STMap t1 t2
 singFromTOpq (STBigMap t1 t2) =
-  withDict (singICT t1) $
-  withDict (singIT  t2) $
+  withDict1 t1 $
+  withDict1 t2 $
   withDict (singTypeableCT t1) $
   withDict (singTypeableT  t2) $
   Michelson.STBigMap t1 t2
@@ -250,6 +202,28 @@ fromToTAlg (Michelson.STPair t1 t2) =
     (Refl, Refl) -> Refl
 fromToTAlg (Michelson.STOr t1 t2) =
   case (fromToTAlg t1, fromToTAlg t2) of
+    (Refl, Refl) -> Refl
+
+-- | Proof that `ToTAlg` `FromTAlg` is an isomorphism
+toFromTAlg :: Sing t -> ToTAlg (FromTAlg t) :~: t
+toFromTAlg (STOpq (STc _)) = Refl
+toFromTAlg (STOpq (STKey)) = Refl
+toFromTAlg (STOpq (STUnit)) = Refl
+toFromTAlg (STOpq (STSignature)) = Refl
+toFromTAlg (STOpq (STChainId)) = Refl
+toFromTAlg (STOpq (STOption _)) = Refl
+toFromTAlg (STOpq (STList _)) = Refl
+toFromTAlg (STOpq (STSet _)) = Refl
+toFromTAlg (STOpq (STOperation)) = Refl
+toFromTAlg (STOpq (STContract _)) = Refl
+toFromTAlg (STOpq (STLambda _ _)) = Refl
+toFromTAlg (STOpq (STMap _ _)) = Refl
+toFromTAlg (STOpq (STBigMap _ _)) = Refl
+toFromTAlg (STPair t1 t2) =
+  case (toFromTAlg t1, toFromTAlg t2) of
+    (Refl, Refl) -> Refl
+toFromTAlg (STOr t1 t2) =
+  case (toFromTAlg t1, toFromTAlg t2) of
     (Refl, Refl) -> Refl
 
 -- | Proof that `FromTAlg` `ToTAlg` is an isomorphism

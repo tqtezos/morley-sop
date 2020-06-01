@@ -4,88 +4,30 @@
 
 module Michelson.Typed.T.Sing where
 
-import Prelude (($))
+import Prelude (($), error)
+import Data.Maybe
+import Data.String
 import Data.Typeable
 
 import Michelson.Typed.Sing
+import Michelson.Typed.Scope
 import Michelson.Typed.T
 
 import Data.Constraint
-import Data.Singletons
 import Data.Singletons.Prelude
 import Data.Singletons.TH
 
 import Data.Constraint.HasDict1
 
 
--- | `HasDict1` for `CT`
-singICT :: forall (t :: CT). Sing t -> Dict (SingI t)
-singICT SCInt = Dict
-singICT SCNat = Dict
-singICT SCString = Dict
-singICT SCBytes = Dict
-singICT SCMutez = Dict
-singICT SCBool = Dict
-singICT SCKeyHash = Dict
-singICT SCTimestamp = Dict
-singICT SCAddress = Dict
-
--- | `HasDict1` for `T`
-singIT :: forall (t :: T). Sing t -> Dict (SingI t)
-singIT (STc ct) =
-  withDict (singICT ct) $
-  Dict
-singIT STKey = Dict
-singIT STUnit = Dict
-singIT STSignature = Dict
-singIT STChainId = Dict
-singIT (STOption st) =
-  withDict (singIT st) $
-  Dict
-singIT (STList st) =
-  withDict (singIT st) $
-  Dict
-singIT (STSet st) =
-  withDict (singICT st) $
-  Dict
-singIT STOperation  = Dict
-singIT (STContract st) =
-  withDict (singIT st) $
-  Dict
-singIT (STPair st su) =
-  withDict (singIT st) $
-  withDict (singIT su) $
-  Dict
-singIT (STOr st su) =
-  withDict (singIT st) $
-  withDict (singIT su) $
-  Dict
-singIT (STLambda st su) =
-  withDict (singIT st) $
-  withDict (singIT su) $
-  Dict
-singIT (STMap st su) =
-  withDict (singICT st) $
-  withDict (singIT su) $
-  Dict
-singIT (STBigMap st su) =
-  withDict (singICT st) $
-  withDict (singIT su) $
-  Dict
+instance HasDict1 CT where
+  evidence1 = $(gen_evidence1 ''CT)
 
 instance HasDict1 T where
-  evidence1 = singIT
+  evidence1 = $(gen_evidence1 ''T)
 
 singTypeableCT :: forall (t :: CT). Sing t -> Dict (Typeable t)
-singTypeableCT SCInt = Dict
-singTypeableCT SCNat = Dict
-singTypeableCT SCString = Dict
-singTypeableCT SCBytes = Dict
-singTypeableCT SCMutez = Dict
-singTypeableCT SCBool = Dict
-singTypeableCT SCKeyHash = Dict
-singTypeableCT SCTimestamp = Dict
-singTypeableCT SCAddress = Dict
+singTypeableCT x = $(sCases ''CT [|x|] [|Dict|])
 
 singTypeableT :: forall (t :: T). Sing t -> Dict (Typeable t)
 singTypeableT (STc ct) =
@@ -132,4 +74,17 @@ singTypeableT (STBigMap st su) =
 
 $(genDefunSymbols [''CT, ''T])
 $(singShowInstances [''CT, ''T])
+
+
+assertOpAbsense :: forall (t :: T) a. Sing t -> (HasNoOp t => a) -> a
+assertOpAbsense st f =
+  case opAbsense st of
+    Nothing -> error "assertOpAbsense"
+    Just Dict -> withDict1 st $ forbiddenOp @t f
+
+assertNestedBigMapsAbsense :: forall (t :: T) a. Sing t -> (HasNoNestedBigMaps t => a) -> a
+assertNestedBigMapsAbsense st f =
+  case nestedBigMapsAbsense st of
+    Nothing -> error "assertNestedBigMapsAbsense"
+    Just Dict -> withDict1 st $ forbiddenNestedBigMaps @t f
 

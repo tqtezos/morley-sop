@@ -1,5 +1,7 @@
 {-# LANGUAGE QuantifiedConstraints #-}
 
+{-# OPTIONS -Wno-missing-export-lists #-}
+
 module Data.AltError.Run where
 
 import Data.Kind
@@ -57,19 +59,19 @@ runAltEAlt =
   \case
     SPureAltE sxs ->
       \case
-        SPureAltE  sys -> \xss yss -> RunAltExcept $ WrapSing $ sing `SCons` sShow_ sxs `SCons` sShow_ sys `SCons` SNil
-        SAltThrow  sys -> \xss yss -> RunPureAltE  $ unRunPureAltE xss
-        SAltExcept sys -> \xss yss -> RunAltExcept $ WrapSing $ sys
+        SPureAltE   sys -> \_xss _yss -> RunAltExcept $ WrapSing $ sing `SCons` sShow_ sxs `SCons` sShow_ sys `SCons` SNil
+        SAltThrow  _sys -> \ xss _yss -> RunPureAltE  $ unRunPureAltE xss
+        SAltExcept  sys -> \_xss _yss -> RunAltExcept $ WrapSing $ sys
     SAltThrow sxs ->
       \case
-        SPureAltE  sys -> \xss yss -> RunPureAltE  $ unRunPureAltE yss
-        SAltThrow  sys -> \xss yss -> RunAltThrow  $ WrapSing $ sing @MultipleErrors `SCons` (sUnMultipleErrors sxs %++ sUnMultipleErrors sys)
-        SAltExcept sys -> \xss yss -> RunAltExcept $ WrapSing $ sing @MultipleErrors `SCons` (sUnMultipleErrors sxs %++ sUnMultipleErrors sys)
+        SPureAltE  _sys -> \_xss  yss -> RunPureAltE  $ unRunPureAltE yss
+        SAltThrow   sys -> \_xss _yss -> RunAltThrow  $ WrapSing $ sing @MultipleErrors `SCons` (sUnMultipleErrors sxs %++ sUnMultipleErrors sys)
+        SAltExcept  sys -> \_xss _yss -> RunAltExcept $ WrapSing $ sing @MultipleErrors `SCons` (sUnMultipleErrors sxs %++ sUnMultipleErrors sys)
     SAltExcept sxs ->
       \case
-        SPureAltE  sys -> \xss yss -> RunAltExcept $ WrapSing sxs
-        SAltThrow  sys -> \xss yss -> RunAltExcept $ WrapSing $ sing @MultipleErrors `SCons` (sUnMultipleErrors sxs %++ sUnMultipleErrors sys)
-        SAltExcept sys -> \xss yss -> RunAltExcept $ WrapSing $ sing @MultipleErrors `SCons` (sUnMultipleErrors sxs %++ sUnMultipleErrors sys)
+        SPureAltE  _sys -> \_xss _yss -> RunAltExcept $ WrapSing sxs
+        SAltThrow   sys -> \_xss _yss -> RunAltExcept $ WrapSing $ sing @MultipleErrors `SCons` (sUnMultipleErrors sxs %++ sUnMultipleErrors sys)
+        SAltExcept  sys -> \_xss _yss -> RunAltExcept $ WrapSing $ sing @MultipleErrors `SCons` (sUnMultipleErrors sxs %++ sUnMultipleErrors sys)
 
 
 parseRunAltE :: forall a (f :: [Symbol] -> Type) (g :: a -> Type) (h :: Type -> Type) (xs :: AltE [Symbol] a). (HasDict1 a, Functor h)

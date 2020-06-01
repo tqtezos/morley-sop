@@ -1,4 +1,3 @@
--- {-# LANGUAGE NoTemplateHaskell #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# OPTIONS -Wno-missing-export-lists #-}
 
@@ -21,10 +20,7 @@ import Data.Singletons.TypeLits
 import Data.Singletons.Prelude.Applicative
 import Data.Singletons.Prelude.List
 import Data.Singletons.Prelude.Monad
-import Data.Singletons.Prelude.Semigroup
 import Data.Singletons.Prelude.Bool
-
--- tt = _
 
 type SymAnn = AnnotatedAlg Symbol
 
@@ -107,4 +103,5 @@ $(singletonsOnly [d|
     traverse (epFieldT t ann epPath)
 
   |])
+
 

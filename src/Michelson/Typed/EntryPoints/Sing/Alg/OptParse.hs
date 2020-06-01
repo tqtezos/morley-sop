@@ -31,18 +31,15 @@ import Data.ListError
 import Data.AltError.Run
 import Data.Singletons.WrappedSing
 
-
-import Data.Singletons.Map
-
-
 import Michelson.Typed.Annotation.Sing.Alg
 import Michelson.Typed.EntryPoints.Sing.Alg
-import Michelson.Typed.EntryPoints.Sing.Alg.Aeson (assertOpAbsense) -- ExampleParam,
+-- import Michelson.Typed.EntryPoints.Sing.Alg.Aeson (assertOpAbsense) -- ExampleParam,
 import Michelson.Typed.EntryPoints.Sing.Alg.Field
 import Michelson.Typed.EntryPoints.Sing.Alg.Fields
 import Michelson.Typed.EntryPoints.Sing.Alg.Paths
 import Michelson.Typed.EntryPoints.Sing.Alg.Types
 import Michelson.Typed.T.Alg
+import Michelson.Typed.T.Sing (assertOpAbsense)
 import Michelson.Typed.Value.Free
 import Michelson.Typed.Value.Parse
 import qualified Michelson.Typed.Annotation.Sing.Notes as Michelson
@@ -63,6 +60,9 @@ import Options.Applicative.Help (renderHelp) -- (parserUsage, putDoc, renderPret
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
+
+-- import Michelson.Typed.Value.Arbitrary
+
 
 traceShow' :: Show a => a -> b -> b
 traceShow' = trace . fromString . ("\n" <>) . show
@@ -195,12 +195,13 @@ parsePrintValueFromContractSource forceSingleLine contractSrc =
     Right (TypeCheck.SomeContract (FullContract _ (ParamNotesUnsafe paramNotes' :: ParamNotes cp) _)) ->  -- caseAltE
       case toSing (Michelson.annotatedFromNotes paramNotes') of
         SomeSing (sann :: Sing ann) ->
-          let sann' = sFieldToTypeAnn (singToAnnotatedAlg sann) in
+          let sann' =  sFieldToTypeAnn (sUniqifyEpPaths (singToAnnotatedAlg sann)) in
             withDict1 (singToTAlg (sing @cp)) $
             traceShow' ("original" :: String, fromSing (singToAnnotatedAlg sann)) $
-            traceShow' ("next" :: String, fromSing sann') $
+            traceShow' ("next" :: String, fromSing (sUniqifyEpPaths (singToAnnotatedAlg sann))) $
+            traceShow' ("next_uniquified" :: String, fromSing sann') $
             withDict1 sann' $
-            parsePrintValue @(ToTAlg cp) @(FieldToTypeAnn (ToAnnotatedAlg ann)) forceSingleLine
+            parsePrintValue @(ToTAlg cp) @(FieldToTypeAnn (UniqifyEpPaths (ToAnnotatedAlg ann))) forceSingleLine
 
 parsePrintValueFromContract :: IO ()
 parsePrintValueFromContract = do

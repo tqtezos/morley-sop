@@ -11,8 +11,6 @@ import GHC.Generics ((:.:)(..))
 import Control.AltError
 import Data.AltError
 import Data.AltError.Run
--- import Data.Either.Run
--- import Data.Either.Run.ErrorMessage
 
 import Michelson.Typed.Annotation.Path
 import Michelson.Typed.EntryPoints.Error
@@ -26,7 +24,6 @@ import Data.Singletons.WrappedSing
 import Data.Singletons
 import Data.Singletons.TypeLits
 import Data.Singletons.Prelude.Eq
-import Data.Singletons.Prelude.Semigroup
 import Data.Singletons.Prelude.Applicative
 import Data.Singletons.Prelude.Bool
 import Data.Singletons.Prelude.List
@@ -81,84 +78,56 @@ lensRunAltEAppendErrM ta tb sxs sys fx fy fs xss =
           fs . RunAltExcept . WrapSing $
           sing @"(<||>) (PureAltE _) (PureAltE _):" `SCons` sShow_ sxs' `SCons` sShow_ sys' `SCons` SNil
 
-(*>>) :: forall f a xs ys. AltError [String] f
+(**>>) :: forall f a xs ys. AltError [String] f
   => Sing xs
   -> Sing ys
   -> Lens' a (RunSingValueOpq f ys)
   -> Lens' a (RunSingValueOpq f (xs *> ys))
-(*>>) sxs sys fs gs xs =
+(**>>) sxs sys fs gs xs =
   case sxs of
-    SPureAltE sxs' ->
+    SPureAltE _ ->
       case sys of
-        SPureAltE sys' -> fs gs xs
-        SAltThrow sys' -> fs gs xs
-        SAltExcept sys' -> fs gs xs
+        SPureAltE _ -> fs gs xs
+        SAltThrow _ -> fs gs xs
+        SAltExcept _ -> fs gs xs
     SAltThrow sxs' ->
       case sys of
-        SPureAltE sys' ->
+        SPureAltE _ ->
           fs
-          (fmap (RunPureAltE . Comp1 . altErr . ("(*>>):" :) . fmap T.unpack . fromSing . unwrapSing . unRunAltThrow) .
-            gs .
-            RunAltThrow .
-            WrapSing .
-            const sxs' .
-            unRunPureAltE
+          (fmap (RunPureAltE . Comp1 . altErr . ("(**>>):" :) . fmap T.unpack . fromSing . unwrapSing . unRunAltThrow) .
+            gs . RunAltThrow . WrapSing . const sxs' . unRunPureAltE
           )
           xs
         SAltThrow sys' ->
           fs
           (fmap (RunAltThrow . const (WrapSing sys') . unRunAltThrow) .
-            gs .
-            RunAltThrow .
-            WrapSing .
-            sMergeErrors sxs' .
-            unwrapSing .
-            unRunAltThrow
+            gs . RunAltThrow . WrapSing . sMergeErrors sxs' . unwrapSing . unRunAltThrow
           )
           xs
         SAltExcept sys' ->
           fs
           (fmap (RunAltExcept . const (WrapSing sys') . unRunAltExcept) .
-            gs .
-            RunAltExcept .
-            WrapSing .
-            sMergeErrors sxs' .
-            unwrapSing .
-            unRunAltExcept
+            gs . RunAltExcept . WrapSing . sMergeErrors sxs' . unwrapSing . unRunAltExcept
           )
           xs
     SAltExcept sxs' ->
       case sys of
-        SPureAltE sys' ->
+        SPureAltE _ ->
           fs
-          (fmap (RunPureAltE . Comp1 . altFail . ("(*>>):" :) . fmap T.unpack . fromSing . unwrapSing . unRunAltExcept) .
-            gs .
-            RunAltExcept .
-            WrapSing .
-            const sxs' .
-            unRunPureAltE
+          (fmap (RunPureAltE . Comp1 . altFail . ("(**>>):" :) . fmap T.unpack . fromSing . unwrapSing . unRunAltExcept) .
+            gs . RunAltExcept . WrapSing . const sxs' . unRunPureAltE
           )
           xs
         SAltThrow sys' ->
           fs
           (fmap (RunAltThrow . const (WrapSing sys') . unRunAltExcept) .
-            gs .
-            RunAltExcept .
-            WrapSing .
-            sMergeErrors sxs' .
-            unwrapSing .
-            unRunAltThrow
+            gs . RunAltExcept . WrapSing . sMergeErrors sxs' . unwrapSing . unRunAltThrow
           )
           xs
         SAltExcept sys' ->
           fs
           (fmap (RunAltExcept . const (WrapSing sys') . unRunAltExcept) .
-            gs .
-            RunAltExcept .
-            WrapSing .
-            sMergeErrors sxs' .
-            unwrapSing .
-            unRunAltExcept
+            gs . RunAltExcept . WrapSing . sMergeErrors sxs' . unwrapSing . unRunAltExcept
           )
           xs
 
@@ -264,7 +233,7 @@ lensEpFieldT (STPair ta tb) (SATPair _ _ _ as bs) epPath fieldName fs (VTPair xs
   lensEpFieldTResolvePair @f ta tb as bs epPath fieldName fs xss
 lensEpFieldT (STOpq t1) (SATOpq ta) epPath tb fs (VTOpq xs) =
   VTOpq <$>
-  (*>>)
+  (**>>)
   (sBool_ (sAltFail (sEpFieldRecAssertHereError t1 epPath `SCons` SNil)) (sPure STuple0) (epPath %== SHere))
   (sEpFieldRecT tb t1 (sTOpqTypeAnn ta))
   (case tb %== sTOpqTypeAnn ta of

@@ -31,8 +31,6 @@ import Data.Singletons.Prelude.List
 import Data.Constraint
 
 import Control.AltError
-import Data.AltError
-import Data.ListError
 import Data.AltError.Run
 
 import Data.Constraint.HasDict1
@@ -107,12 +105,12 @@ npToNS :: forall a (f :: Type -> Type) (g :: a -> Type) (xs :: [a]). (HasDict1 a
   => Sing xs
   -> NP (f :.: g) xs
   -> f (NS g xs)
-npToNS SNil SOP.Nil = altErr ["npToNS SOP.Nil"] -- fail
+npToNS SNil SOP.Nil = altErr ["npToNS SOP.Nil"]
 npToNS (SCons sx sxs) ((SOP.:*) (Comp1 xs) xss) =
   withDict1 sx $
   withDict (prfAllShow @_ @g sxs) $
   fmap SOP.Z xs <||>
-  fmap SOP.S (npToNS sxs xss) -- <|>
+  fmap SOP.S (npToNS sxs xss)
 
 emptyNP :: forall a (f :: Type -> Type) (g :: a -> Type) (xs :: [a]). (HasDict1 a, SingKind a, Show (Demote a), AltError [String] f, forall x. SingI x => Show (g x), SingI xs, SOP.SListI xs)
   => NP (f :.: g) xs
@@ -122,9 +120,7 @@ emptyNP =
     SOP.SCons ->
       case sing @xs of
         SCons sx sxs -> withDict1 sx $ withDict1 sxs $
-          Comp1 (altErr . ("emptyNP SOP.SCons: " :) . (:[]) . show . fromSing $ sing @xs) SOP.:* emptyNP -- fail
-          -- altErr ["alt here?"] <||> (
-          -- ) <||> altErr ["alt works!"]
+          Comp1 (altErr . ("emptyNP SOP.SCons: " :) . (:[]) . show . fromSing $ sing @xs) SOP.:* emptyNP
 
 nsToNP :: forall a (f :: Type -> Type) (g :: a -> Type) (xs :: [a]). (HasDict1 a, SingKind a, Show (Demote a), AltError [String] f, forall x. Show x => Show (f x), forall x. SingI x => Show (g x), SingI xs, SOP.SListI xs)
   => NS g xs
@@ -143,7 +139,7 @@ nsToNP xss@(SOP.S xs) =
       withDict (prfAllShow @_ @g $ sing @xs) $
       withDict (prfAllShow @_ @(f :.: g) $ sing @xs) $
       (\yss -> (trace . fromString . ("\n  nsToNP: SOP.S\n"++) . show $ (xss, yss)) yss ) $
-      Comp1 (altErr . ("nsToNP SCons: " :) . (:[]) . show . fromSing $ sing @xs) -- fail
+      Comp1 (altErr . ("nsToNP SCons: " :) . (:[]) . show . fromSing $ sing @xs)
       SOP.:* nsToNP xs
 
 newtype EpValue (t :: TAlg) (ann :: SymAnn t) where
@@ -202,27 +198,28 @@ toEpValueF st sann (EpValue xs) =
   withDict1 (sEpPaths sann) $
   withDict (prfAllShowEpFields st sann $ sing @(EpPaths ann)) $
   EpValueF @f @t @ann $
-  SOP.hcmap (Proxy @SingI) (wrapEpFields' st sann . unComp1) $
+  SOP.hcmap (Proxy @SingI) (wrapEpFields st sann . unComp1) $
   join (trace . fromString . ("\n  after nsToNP:\n"++) . unlines . fmap ("  "++) . SOP.hcollapse . SOP.hcmap (Proxy @SingI) (\(Comp1 ys) -> SOP.K $ showsPrec1 0 ys "")) $
   nsToNP @EpPath @f $
   join (trace . fromString . ("\n  before nsToNP:\n"++) . show) $
   xs
 
--- | Extract the value-level `EpPath` from an `EpValue`
-epValuePath :: forall (t :: TAlg) (ann :: SymAnn t). ()
-  => Sing t
-  -> Sing ann
-  -> EpValue t ann
-  -> Path Text
-epValuePath _st sann (EpValue xs) =
-  withDict (singAllSingI $ sEpPaths sann) $
-  SOP.hcollapse $
-  SOP.hcmap (Proxy @SingI) mapper xs
-  where
-    mapper :: forall (epPath :: EpPath). SingI epPath
-      => EpFields I t ann epPath
-      -> K (Path Text) epPath
-    mapper = K . const (fromSing $ sing @epPath)
+-- unused
+-- -- | Extract the value-level `EpPath` from an `EpValue`
+-- epValuePath :: forall (t :: TAlg) (ann :: SymAnn t). ()
+--   => Sing t
+--   -> Sing ann
+--   -> EpValue t ann
+--   -> Path Text
+-- epValuePath _st sann (EpValue xs) =
+--   withDict (singAllSingI $ sEpPaths sann) $
+--   SOP.hcollapse $
+--   SOP.hcmap (Proxy @SingI) mapper xs
+--   where
+--     mapper :: forall (epPath :: EpPath). SingI epPath
+--       => EpFields I t ann epPath
+--       -> K (Path Text) epPath
+--     mapper = K . const (fromSing $ sing @epPath)
 
 -- | Extract the fields from an `EpValue`
 epValueFields :: forall (t :: TAlg) (ann :: SymAnn t) r. ()

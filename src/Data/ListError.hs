@@ -20,7 +20,6 @@ import Control.AltError
 import Data.AltError
 import Data.Constraint.HasDict1
 
-import Data.Constraint
 import Data.Singletons.TypeLits
 import Data.Singletons.Prelude.Bool
 import Data.Singletons.Prelude.Either
@@ -72,7 +71,7 @@ $(singletonsOnly [d|
   |])
 
 instance (HasDict1 str, HasDict1 a) => HasDict1 (ListE str a) where
-  evidence1 (SListE sxs) = withDict1 sxs Dict
+  evidence1 = $(gen_evidence1 ''ListE)
 
 ---------------------------
 -- Applicative and ListError

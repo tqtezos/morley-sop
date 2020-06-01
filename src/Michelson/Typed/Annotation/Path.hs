@@ -9,22 +9,23 @@ import Text.Show
 
 import Data.Aeson
 import qualified Data.Text as T
-import Data.Singletons
 import Data.Singletons.TH
 import Data.Singletons.TypeLits
-import Data.Constraint
 
 import Data.Constraint.HasDict1
 
-
+-- | An entrypoint-`Path` is a `Path` where the annotations are `Symbol`'s
 type EpPath = Path Symbol
 
+-- | A @`Path` a@ is an extended entrypoint over Michelson
+-- types `Annotated` with @a@
 data Path a where
   (:*) :: Path a -> Path a -> Path a
   (:+) :: a -> Path a -> Path a
   Here :: Path a
   deriving (Eq, Ord, Read, Functor, Foldable, Traversable, Generic)
 
+-- | Pretty-print a @`Path` `Text`@
 ppPath :: Path Text -> Text
 ppPath =
   \case
@@ -50,10 +51,10 @@ ppPath =
         (:+) x y -> x : collectSums y
         x -> [parens $ ppPath x]
 
--- deriving instance Show a => Show (Path a)
+deriving instance Show a => Show (Path a)
 
-instance Show (Path Text) where
-  show = T.unpack . ppPath
+-- instance Show (Path Text) where
+--   show = T.unpack . ppPath
 
 --   showsPrec _ Here = showString ""
 
@@ -75,17 +76,6 @@ $(singEqInstance ''Path)
 $(singOrdInstance ''Path)
 $(singShowInstance ''Path)
 
-singIPath :: forall a (xs :: Path a). (forall (x :: a). Sing x -> Dict (SingI x)) -> Sing xs -> Dict (SingI xs)
-singIPath singIA ((:%*) sxs sys) =
-  withDict (singIPath singIA sxs) $
-  withDict (singIPath singIA sys) $
-  Dict
-singIPath singIA ((:%+) sx sxs) =
-  withDict (singIA sx) $
-  withDict (singIPath singIA sxs) $
-  Dict
-singIPath _ SHere = Dict
-
 instance HasDict1 a => HasDict1 (Path a) where
-  evidence1 = singIPath evidence1
+  evidence1 = $(gen_evidence1 ''Path)
 

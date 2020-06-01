@@ -39,6 +39,8 @@ library:
     - aeson-pretty
     - optparse-applicative
     - lens
+    - template-haskell
+    - th-desugar
 
 executables:
   morley-sop:
@@ -69,6 +71,8 @@ tests:
   morley-sop-test:
     <<: *test-common
 
+    main: Spec.hs
+
     dependencies:
       - containers
       - data-default
@@ -77,6 +81,7 @@ tests:
       - hspec-expectations
       - HUnit
       # - lorentz-contracts
+      - lorentz
       - morley
       - morley-prelude
       # - morley-ledgers
@@ -94,4 +99,6 @@ tests:
       - aeson
       - text
       - memory
+      - constraints
+      - lens
 

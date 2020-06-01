@@ -7,8 +7,8 @@ module Michelson.Typed.EntryPoints.Sing.Alg.Aeson where
 
 import Data.String
 import Prelude hiding (unwords, show, forM_, view, Lens')
-import GHC.Generics ((:.:)(..))
-import Text.Show
+-- import GHC.Generics ((:.:)(..))
+-- import Text.Show
 
 import Lorentz ((:!), IsoValue(..), EpdPlain, MText)
 import Michelson.Text
@@ -18,32 +18,26 @@ import Michelson.Typed.Scope
 import Util.Named
 
 import Data.AltError
-import Data.ListError
-import Data.AltError.Run
-import Data.Singletons.WrappedSing
+-- import Data.ListError
+-- import Data.AltError.Run
+-- import Data.Singletons.WrappedSing
 
-import Michelson.Typed.EntryPoints.Sing.Alg
-import Michelson.Typed.EntryPoints.Sing.Alg.Field
-import Michelson.Typed.EntryPoints.Sing.Alg.Types
+-- import Michelson.Typed.EntryPoints.Sing.Alg
+-- import Michelson.Typed.EntryPoints.Sing.Alg.Field
+-- import Michelson.Typed.EntryPoints.Sing.Alg.Types
 import Michelson.Typed.T.Alg
 import Michelson.Typed.Value.Free
 
-import Data.Singletons
+-- import Data.Singletons
 import Data.Constraint
 
 import Data.Constraint.HasDict1
 
-import Data.SOP (I(..), K(..), NP)
-import qualified Data.SOP as SOP
+-- import Data.SOP (I(..), K(..), NP)
+-- import qualified Data.SOP as SOP
 
 import Data.Aeson -- (ToJSON(..))
-import qualified Data.Aeson as Aeson -- (ToJSON(..))
-
-assertOpAbsense :: forall (t :: T) a. Sing t -> (HasNoOp t => a) -> a
-assertOpAbsense st f =
-  case opAbsense st of
-    Nothing -> error "assertOpAbsense"
-    Just Dict -> withDict1 st $ forbiddenOp @t f
+-- import qualified Data.Aeson as Aeson -- (ToJSON(..))
 
 data SomeValueOpq where
   SomeValueOpq :: forall (t :: TOpq). (SingI t, HasNoOp (FromTOpq t))

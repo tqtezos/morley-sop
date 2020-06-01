@@ -15,8 +15,8 @@ import Michelson.Typed.T
 import Data.Singletons
 import Data.Singletons.Prelude
 import Data.Singletons.TH
-import Data.Constraint
 
+import Data.Constraint.HasDict1
 import Data.Singletons.Prelude.Monad.State
 
 
@@ -60,22 +60,22 @@ $(singletons [d|
     showsPrec d (ATPair x1 x2 x3 x4 x5) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATPair" d (x1, x2, x3, x4, x5)
     showsPrec d (ATOr x1 x2 x3 x4 x5) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATOr" d (x1, x2, x3, x4, x5)
 
-  traverseAnnotated :: (a -> State' s b) -> Annotated a t -> State' s (Annotated b t)
-  traverseAnnotated fs (ATc ta) = ATc <$$> fs ta
-  traverseAnnotated fs (ATKey ta) = ATKey <$$> fs ta
-  traverseAnnotated fs (ATUnit ta) = ATUnit <$$> fs ta
-  traverseAnnotated fs (ATSignature ta) = ATSignature <$$> fs ta
-  traverseAnnotated fs (ATChainId ta) = ATChainId <$$> fs ta
-  traverseAnnotated fs (ATOption ta xs) = ATOption <$$> fs ta <<*>> traverseAnnotated fs xs
-  traverseAnnotated fs (ATList ta xs) = ATList <$$> fs ta <<*>> traverseAnnotated fs xs
-  traverseAnnotated fs (ATSet ta tb) = ATSet <$$> fs ta <<*>> fs tb
-  traverseAnnotated fs (ATOperation ta) = ATOperation <$$> fs ta
-  traverseAnnotated fs (ATContract ta xs) = ATContract <$$> fs ta <<*>> traverseAnnotated fs xs
-  traverseAnnotated fs (ATLambda ta xs ys) = ATLambda <$$> fs ta <<*>> traverseAnnotated fs xs <<*>> traverseAnnotated fs ys
-  traverseAnnotated fs (ATMap ta tb xs) = ATMap <$$> fs ta <<*>> fs tb <<*>> traverseAnnotated fs xs
-  traverseAnnotated fs (ATBigMap ta tb xs) = ATBigMap <$$> fs ta <<*>> fs tb <<*>> traverseAnnotated fs xs
-  traverseAnnotated fs (ATPair x1 x2 x3 x4 x5) = ATPair <$$> fs x1 <<*>> fs x2 <<*>> fs x3 <<*>> traverseAnnotated fs x4 <<*>> traverseAnnotated fs x5
-  traverseAnnotated fs (ATOr x1 x2 x3 x4 x5) = ATOr <$$> fs x1 <<*>> fs x2 <<*>> fs x3 <<*>> traverseAnnotated fs x4 <<*>> traverseAnnotated fs x5
+  traverseAnnotated :: Applicative f => (a -> f b) -> Annotated a t -> f (Annotated b t)
+  traverseAnnotated fs (ATc ta) = ATc <$> fs ta
+  traverseAnnotated fs (ATKey ta) = ATKey <$> fs ta
+  traverseAnnotated fs (ATUnit ta) = ATUnit <$> fs ta
+  traverseAnnotated fs (ATSignature ta) = ATSignature <$> fs ta
+  traverseAnnotated fs (ATChainId ta) = ATChainId <$> fs ta
+  traverseAnnotated fs (ATOption ta xs) = ATOption <$> fs ta <*> traverseAnnotated fs xs
+  traverseAnnotated fs (ATList ta xs) = ATList <$> fs ta <*> traverseAnnotated fs xs
+  traverseAnnotated fs (ATSet ta tb) = ATSet <$> fs ta <*> fs tb
+  traverseAnnotated fs (ATOperation ta) = ATOperation <$> fs ta
+  traverseAnnotated fs (ATContract ta xs) = ATContract <$> fs ta <*> traverseAnnotated fs xs
+  traverseAnnotated fs (ATLambda ta xs ys) = ATLambda <$> fs ta <*> traverseAnnotated fs xs <*> traverseAnnotated fs ys
+  traverseAnnotated fs (ATMap ta tb xs) = ATMap <$> fs ta <*> fs tb <*> traverseAnnotated fs xs
+  traverseAnnotated fs (ATBigMap ta tb xs) = ATBigMap <$> fs ta <*> fs tb <*> traverseAnnotated fs xs
+  traverseAnnotated fs (ATPair x1 x2 x3 x4 x5) = ATPair <$> fs x1 <*> fs x2 <*> fs x3 <*> traverseAnnotated fs x4 <*> traverseAnnotated fs x5
+  traverseAnnotated fs (ATOr x1 x2 x3 x4 x5) = ATOr <$> fs x1 <*> fs x2 <*> fs x3 <*> traverseAnnotated fs x4 <*> traverseAnnotated fs x5
 
     |])
 
@@ -128,53 +128,8 @@ instance (SingI ta,  SingI tb,  SingI xs) => SingI ('ATMap ta tb xs) where
 instance (SingI ta,  SingI tb,  SingI xs) => SingI ('ATBigMap ta tb xs) where
   sing = SATBigMap sing sing sing
 
--- | A proof that `Sing` implies `SingI` for `Annotated`, if it does for @a@
-singIAnnotated :: forall a t (xs :: Annotated a t). (forall (x :: a). Sing x -> Dict (SingI x)) -> Sing xs -> Dict (SingI xs)
-singIAnnotated singIA (SATc ta) =
-  case (singIA ta) of
-    (Dict) -> Dict
-singIAnnotated singIA (SATKey ta) =
-  case (singIA ta) of
-    (Dict) -> Dict
-singIAnnotated singIA (SATUnit ta) =
-  case (singIA ta) of
-    (Dict) -> Dict
-singIAnnotated singIA (SATSignature ta) =
-  case (singIA ta) of
-    (Dict) -> Dict
-singIAnnotated singIA (SATChainId ta) =
-  case (singIA ta) of
-    (Dict) -> Dict
-singIAnnotated singIA (SATOption ta xs) =
-  case (singIA ta, singIAnnotated singIA xs) of
-    (Dict, Dict) -> Dict
-singIAnnotated singIA (SATList ta xs) =
-  case (singIA ta, singIAnnotated singIA xs) of
-    (Dict, Dict) -> Dict
-singIAnnotated singIA (SATSet ta tb) =
-  case (singIA ta, singIA tb) of
-    (Dict, Dict) -> Dict
-singIAnnotated singIA (SATOperation ta) =
-  case (singIA ta) of
-    (Dict) -> Dict
-singIAnnotated singIA (SATContract ta xs) =
-  case (singIA ta, singIAnnotated singIA xs) of
-    (Dict, Dict) -> Dict
-singIAnnotated singIA (SATPair ta tb tc xs ys) =
-  case (singIA ta, singIA tb, singIA tc, singIAnnotated singIA xs, singIAnnotated singIA ys) of
-    (Dict, Dict, Dict, Dict, Dict) -> Dict
-singIAnnotated singIA (SATOr ta tb tc xs ys) =
-  case (singIA ta, singIA tb, singIA tc, singIAnnotated singIA xs, singIAnnotated singIA ys) of
-    (Dict, Dict, Dict, Dict, Dict) -> Dict
-singIAnnotated singIA (SATLambda ta xs ys) =
-  case (singIA ta, singIAnnotated singIA xs, singIAnnotated singIA ys) of
-    (Dict, Dict, Dict) -> Dict
-singIAnnotated singIA (SATMap ta tb xs) =
-  case (singIA ta, singIA tb, singIAnnotated singIA xs) of
-    (Dict, Dict, Dict) -> Dict
-singIAnnotated singIA (SATBigMap ta tb xs) =
-  case (singIA ta, singIA tb, singIAnnotated singIA xs) of
-    (Dict, Dict, Dict) -> Dict
+instance HasDict1 a => HasDict1 (Annotated a t) where
+  evidence1 = $(gen_evidence1 ''Annotated)
 
 instance SingKind a => SingKind (Annotated a t) where
   type Demote (Annotated a t) = Annotated (Demote a) t

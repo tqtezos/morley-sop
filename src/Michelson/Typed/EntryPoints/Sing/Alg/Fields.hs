@@ -92,17 +92,17 @@ wrapNP xss =
         wrapNP
         (\case { (SOP.:*) _ yss -> yss } <$> xss)
 
-wrapEpFields' :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). (Functor f, SingI epPath)
+wrapEpFields :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). (Functor f, SingI epPath)
   => Sing t
   -> Sing ann
   -> f (EpFields I t ann epPath)
   -> EpFields f t ann epPath
-wrapEpFields' st sann xs =
+wrapEpFields st sann xs =
   EpFields @f @t @ann @epPath (sing @epPath) $
   wrapRunAltE
     (\sys ->
       withDict (singAllSingI sys) $
-      SOP.hcmap (Proxy @SingI) (wrapEpField' st sann . unComp1) .
+      SOP.hcmap (Proxy @SingI) (wrapEpField st sann . unComp1) .
       wrapNP
     )
     (sEpFieldNamesErrM st sann (sing @epPath)) $

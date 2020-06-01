@@ -63,12 +63,6 @@ instance (forall t'. SingI t' => Show (f (ValueOpq t')), SingI t, SingI ann, Sin
     withDict1 (sEpFieldT @ErrM (sing @t) (sing @ann) (sing @epPath) sfieldName) $
     showsBinaryWith showsPrec showsPrec "EpField" d (fromSing sfieldName) xs
 
--- transEpField :: forall (f :: Type -> Type) (g :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). ()
---   => (forall x. f x -> g x)
---   -> EpField f t ann epPath fieldName
---   -> EpField g t ann epPath fieldName
--- transEpField trans = _
-
 unwrapEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). Applicative f
   => EpField f t ann epPath fieldName
   -> f (EpField I t ann epPath fieldName)
@@ -79,21 +73,12 @@ unwrapEpField (EpField sfieldName xs) =
     RunAltExcept ys -> pure $ RunAltExcept ys
     RunPureAltE (Comp1 ys) -> RunPureAltE . Comp1 . I <$> ys
 
--- wrapEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). Applicative f
---   => EpField I t ann epPath fieldName
---   -> EpField f t ann epPath fieldName
--- wrapEpField (EpField sfieldName xs) =
---   EpField sfieldName $
---   case xs of
---     RunLeft ys -> RunLeft ys
---     RunPureAltE (Comp1 (I ys)) -> RunPureAltE . Comp1 $ pure ys
-
-wrapEpField' :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). (Functor f, SingI epPath, SingI fieldName)
+wrapEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). (Functor f, SingI epPath, SingI fieldName)
   => Sing t
   -> Sing ann
   -> f (EpField I t ann epPath fieldName)
   -> EpField f t ann epPath fieldName
-wrapEpField' st sann xs =
+wrapEpField st sann xs =
   EpField (sing @fieldName) $
   case sEpFieldT @ErrM st sann (sing @epPath) (sing @fieldName) of
     SAltThrow serr -> RunAltThrow $ WrapSing serr

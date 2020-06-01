@@ -13,23 +13,20 @@ import Text.Show
 
 import Data.Singletons
 import Data.Singletons.Prelude
-import Data.Singletons.Prelude.Applicative
 import Data.Singletons.Prelude.Bool
 import Data.Singletons.Prelude.IsString
 import Data.Singletons.TH
-import Data.Constraint
 
 import Michelson.Typed.T (CT(..))
 import Michelson.Typed.T.Alg
 import Data.Constraint.HasDict1
-
 import Data.Singletons.Prelude.Monad.State
+
 import Michelson.Typed.Annotation.Sing (Annotated)
+import Michelson.Typed.Annotation.Sing.Notes
 import Michelson.Typed.Annotation.Sing.Opq
 import qualified Michelson.Typed.Annotation.Sing as Michelson
 
-
--- tt = _
 
 data AnnotatedAlg a (t :: TAlg) where
   ATPair      :: a -> a -> a
@@ -47,31 +44,10 @@ $(singletons [d|
     showsPrec d (ATOr x1 x2 x3 x4 x5) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATOr" d (x1, x2, x3, x4, x5)
     showsPrec d (ATOpq x1) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATOpq" d x1
 
-  -- traverseAnnotatedAlg :: (a -> State' s b) -> AnnotatedAlg a t -> State' s (AnnotatedAlg b t)
-  -- traverseAnnotatedAlg fs (ATPair x1 x2 x3 x4 x5) = ATPair <$$> fs x1 <<*>> fs x2 <<*>> fs x3 <<*>> traverseAnnotatedAlg fs x4 <<*>> traverseAnnotatedAlg fs x5
-  -- traverseAnnotatedAlg fs (ATOr x1 x2 x3 x4 x5) = ATOr <$$> fs x1 <<*>> fs x2 <<*>> fs x3 <<*>> traverseAnnotatedAlg fs x4 <<*>> traverseAnnotatedAlg fs x5
-  -- traverseAnnotatedAlg fs (ATOpq x1) = ATOpq <$$> traverseAnnotatedOpq fs x1
-
-  -- -- (isField -> currentPath -> currentAnnotation -> newAnnotation)
-  -- traverseAnnotatedAlg :: (Bool -> Path a -> a -> State' s a) -> AnnotatedAlg a t -> Path a -> State' s (AnnotatedAlg a t)
-  -- traverseAnnotatedAlg fs (ATPair x1 x2 x3 x4 x5) epPath = ATPair <$$>
-  --   pureState' x1 <<*>>
-  --   pureState' x2 <<*>>
-  --   pureState' x3 <<*>>
-  --   traverseAnnotatedAlg fs x4 epPath <<*>>
-  --   traverseAnnotatedAlg fs x5 epPath
-
-  -- -- this case gets us entrypoint deduplication
-  -- traverseAnnotatedAlg fs (ATOr x1 x2 x3 x4 x5) epPath = ATOr <$$>
-  --   pureState' x1 <<*>>
-  --   fs False epPath x2 <<*>>
-  --   fs False epPath x3 <<*>>
-  --   traverseAnnotatedAlg fs x4 (x2 :+ epPath) <<*>>
-  --   traverseAnnotatedAlg fs x5 (x3 :+ epPath)
-
-  -- -- this case gets us field deduplication
-  -- traverseAnnotatedAlg fs (ATOpq x1) epPath = ATOpq <$$>
-  --   fs True epPath (tOpqTypeAnn x1)
+  traverseAnnotatedAlg :: Applicative f => (a -> f b) -> AnnotatedAlg a t -> f (AnnotatedAlg b t)
+  traverseAnnotatedAlg fs (ATPair x1 x2 x3 x4 x5) = ATPair <$> fs x1 <*> fs x2 <*> fs x3 <*> traverseAnnotatedAlg fs x4 <*> traverseAnnotatedAlg fs x5
+  traverseAnnotatedAlg fs (ATOr x1 x2 x3 x4 x5) = ATOr <$> fs x1 <*> fs x2 <*> fs x3 <*> traverseAnnotatedAlg fs x4 <*> traverseAnnotatedAlg fs x5
+  traverseAnnotatedAlg fs (ATOpq x1) = ATOpq <$> traverseAnnotatedOpq fs x1
 
   |])
 
@@ -112,21 +88,8 @@ instance SingKind a => SingKind (AnnotatedAlg a t) where
         SomeSing $
           SATOpq sxs
 
-
--- | A proof that `Sing` implies `SingI` for `AnnotatedAlg`, if it does for @a@
-singIAnnotatedAlg :: forall a t (xs :: AnnotatedAlg a t). (forall (x :: a). Sing x -> Dict (SingI x)) -> Sing xs -> Dict (SingI xs)
-singIAnnotatedAlg singIA (SATPair ta tb tc xs ys) =
-  case (singIA ta, singIA tb, singIA tc, singIAnnotatedAlg singIA xs, singIAnnotatedAlg singIA ys) of
-    (Dict, Dict, Dict, Dict, Dict) -> Dict
-singIAnnotatedAlg singIA (SATOr ta tb tc xs ys) =
-  case (singIA ta, singIA tb, singIA tc, singIAnnotatedAlg singIA xs, singIAnnotatedAlg singIA ys) of
-    (Dict, Dict, Dict, Dict, Dict) -> Dict
-singIAnnotatedAlg singIA (SATOpq xs) =
-  case (singIAnnotatedOpq singIA xs) of
-    (Dict) -> Dict
-
 instance HasDict1 a => HasDict1 (AnnotatedAlg a t) where
-  evidence1 = singIAnnotatedAlg evidence1
+  evidence1 = $(gen_evidence1 ''AnnotatedAlg)
 
 
 $(singletonsOnly [d|
@@ -169,19 +132,22 @@ $(singletonsOnly [d|
     => a
     -> AnnotatedAlg a t
     -> AnnotatedAlg a t
-  propagateTypeAnn as (ATPair ta tb tc xs ys) =
-    bool_
-      (fieldToTypeAnn (ATPair as tb tc xs ys))
+  propagateTypeAnn _as (ATPair ta tb tc xs ys) =
+    -- bool_
+    --   (fieldToTypeAnn (ATPair as tb tc xs ys))
       (fieldToTypeAnn (ATPair ta tb tc xs ys))
-      (as == "")
+      -- (as == "")
   propagateTypeAnn _as (ATOr ta tb tc xs ys) =
        fieldToTypeAnn (ATOr ta tb tc xs ys)
   propagateTypeAnn as (ATOpq xs) =
-    bool_ (ATOpq (setTypeAnn as xs)) (ATOpq xs) (as == "")
+    -- bool_
+    (ATOpq (setTypeAnn as xs))
+    -- (ATOpq xs)
+    -- (as == "")
 
   fieldToTypeAnn :: forall a t. (Eq a, IsString a) => AnnotatedAlg a t -> AnnotatedAlg a t
   fieldToTypeAnn (ATPair ta tb tc xs ys) = ATPair ta tb tc (propagateTypeAnn tb xs) (propagateTypeAnn tc ys)
-  fieldToTypeAnn (ATOr ta tb tc xs ys) = ATOr ta tb tc (fieldToTypeAnn xs) (fieldToTypeAnn ys) -- (propagateTypeAnn tb xs) (propagateTypeAnn tc ys)
+  fieldToTypeAnn (ATOr ta tb tc xs ys) = ATOr ta tb tc (propagateTypeAnn tb xs) (propagateTypeAnn tc ys) -- (fieldToTypeAnn xs) (fieldToTypeAnn ys)
   fieldToTypeAnn (ATOpq xs) = ATOpq xs
 
   |])
@@ -235,4 +201,44 @@ singToAnnotatedAlg (Michelson.SATOr ta tb tc xs ys) = (SATOr ta tb tc (singToAnn
 singToAnnotatedAlg (Michelson.SATLambda ta xs ys) = SATOpq (SATLambda ta xs ys)
 singToAnnotatedAlg (Michelson.SATMap ta tb xs) = SATOpq (SATMap ta tb xs)
 singToAnnotatedAlg (Michelson.SATBigMap ta tb xs) = SATOpq (SATBigMap ta tb xs)
+
+type family FromAnnotatedAlg (ann :: AnnotatedAlg a t) :: Annotated a (FromTAlg t) where
+  FromAnnotatedAlg ('ATOpq ('ATc ta)) = ('Michelson.ATc ta)
+  FromAnnotatedAlg ('ATOpq ('ATKey ta)) = ('Michelson.ATKey ta)
+  FromAnnotatedAlg ('ATOpq ('ATUnit ta)) = ('Michelson.ATUnit ta)
+  FromAnnotatedAlg ('ATOpq ('ATSignature ta)) = ('Michelson.ATSignature ta)
+  FromAnnotatedAlg ('ATOpq ('ATChainId ta)) = ('Michelson.ATChainId ta)
+  FromAnnotatedAlg ('ATOpq ('ATOption ta xs)) = ('Michelson.ATOption ta xs)
+  FromAnnotatedAlg ('ATOpq ('ATList ta xs)) = ('Michelson.ATList ta xs)
+  FromAnnotatedAlg ('ATOpq ('ATSet ta tb)) = ('Michelson.ATSet ta tb)
+  FromAnnotatedAlg ('ATOpq ('ATOperation ta)) = ('Michelson.ATOperation ta)
+  FromAnnotatedAlg ('ATOpq ('ATContract ta xs)) = ('Michelson.ATContract ta xs)
+  FromAnnotatedAlg ('ATOpq ('ATLambda ta xs ys)) = ('Michelson.ATLambda ta xs ys)
+  FromAnnotatedAlg ('ATOpq ('ATMap ta tb xs)) = ('Michelson.ATMap ta tb xs)
+  FromAnnotatedAlg ('ATOpq ('ATBigMap ta tb xs)) = ('Michelson.ATBigMap ta tb xs)
+  FromAnnotatedAlg ('ATPair ta tb tc xs ys) = ('Michelson.ATPair ta tb tc (FromAnnotatedAlg xs) (FromAnnotatedAlg ys))
+  FromAnnotatedAlg ('ATOr ta tb tc xs ys) = ('Michelson.ATOr ta tb tc (FromAnnotatedAlg xs) (FromAnnotatedAlg ys))
+
+singFromAnnotatedAlg :: forall a t (ann :: AnnotatedAlg a t). Sing ann -> Sing (FromAnnotatedAlg ann)
+singFromAnnotatedAlg (SATOpq (SATc ta)) = (Michelson.SATc ta)
+singFromAnnotatedAlg (SATOpq (SATKey ta)) = (Michelson.SATKey ta)
+singFromAnnotatedAlg (SATOpq (SATUnit ta)) = (Michelson.SATUnit ta)
+singFromAnnotatedAlg (SATOpq (SATSignature ta)) = (Michelson.SATSignature ta)
+singFromAnnotatedAlg (SATOpq (SATChainId ta)) = (Michelson.SATChainId ta)
+singFromAnnotatedAlg (SATOpq (SATOption ta xs)) = (Michelson.SATOption ta xs)
+singFromAnnotatedAlg (SATOpq (SATList ta xs)) = (Michelson.SATList ta xs)
+singFromAnnotatedAlg (SATOpq (SATSet ta tb)) = (Michelson.SATSet ta tb)
+singFromAnnotatedAlg (SATOpq (SATOperation ta)) = (Michelson.SATOperation ta)
+singFromAnnotatedAlg (SATOpq (SATContract ta xs)) = (Michelson.SATContract ta xs)
+singFromAnnotatedAlg (SATOpq (SATLambda ta xs ys)) = (Michelson.SATLambda ta xs ys)
+singFromAnnotatedAlg (SATOpq (SATMap ta tb xs)) = (Michelson.SATMap ta tb xs)
+singFromAnnotatedAlg (SATOpq (SATBigMap ta tb xs)) = (Michelson.SATBigMap ta tb xs)
+singFromAnnotatedAlg (SATPair ta tb tc xs ys) = (Michelson.SATPair ta tb tc (singFromAnnotatedAlg xs) (singFromAnnotatedAlg ys))
+singFromAnnotatedAlg (SATOr ta tb tc xs ys) = (Michelson.SATOr ta tb tc (singFromAnnotatedAlg xs) (singFromAnnotatedAlg ys))
+
+instance Eq (AnnotatedAlg Text t) where
+  xs == ys =
+    case (toSing xs, toSing ys) of
+      (SomeSing sxs, SomeSing sys) ->
+        fromSing (singFromAnnotatedAlg sxs) == fromSing (singFromAnnotatedAlg sys)
 

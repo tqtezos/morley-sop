@@ -1,23 +1,13 @@
--- {-# LANGUAGE InstanceSigs #-}
 {-# OPTIONS -Wno-missing-export-lists #-}
 
--- {-# OPTIONS -fmax-pmcheck-iterations=20000000 #-} -- type-checking this module takes extra-long
--- {-# OPTIONS -Wno-unused-type-patterns #-} -- `singletons` for (Show (Annotated a t)) generates unused type patterns
+{-# OPTIONS -fmax-pmcheck-iterations=20000000 #-} -- pattern-match checking this module takes extra-long
 
 module Michelson.Typed.Annotation.Sing.Notes where
 
 import Prelude
-import Data.Kind
-import Text.Show
 
 import Michelson.Typed.Annotation
 import Michelson.Untyped.Annotation
-import Michelson.Typed.T
-
-import Data.Singletons
-import Data.Singletons.Prelude
-import Data.Singletons.TH
-import Data.Constraint
 
 import Michelson.Typed.Annotation.Sing
 
@@ -58,4 +48,7 @@ annotatedFromNotes (NTLambda (AnnotationUnsafe ta) xs ys) = ATLambda ta (annotat
 annotatedFromNotes (NTMap (AnnotationUnsafe ta) (AnnotationUnsafe tb) xs) = ATMap ta tb (annotatedFromNotes xs)
 annotatedFromNotes (NTBigMap (AnnotationUnsafe ta) (AnnotationUnsafe tb) xs) = ATBigMap ta tb (annotatedFromNotes xs)
 
+-- | Use @`Eq` (`Notes` t)@
+instance Eq (Annotated Text t) where
+  xs == ys = annotatedToNotes xs == annotatedToNotes ys
 
