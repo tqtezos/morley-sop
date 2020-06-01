@@ -16,38 +16,38 @@ import Data.Singletons.Prelude.Show
 
 
 $(singletonsOnly [d|
-  epFieldTFieldError :: Symbol -> Symbol -> Symbol
+  epFieldTFieldError :: Symbol -> Maybe Symbol -> Symbol
   epFieldTFieldError fieldNameA fieldNameB = unlines
        ["EpFieldT expected ",
        fieldNameA,
        " but got ",
-       fieldNameB]
+       show_ fieldNameB]
 
   -- epFieldRecAssertHereError :: Show a => a -> EpPath -> Symbol
-  epFieldRecAssertHereError :: Show a => a -> EpPath -> Symbol
-  epFieldRecAssertHereError t nonHere =
-    unlines ["EpFieldRecAssertHereError ", show_ t, " ", show_ nonHere]
+  epFieldRecAssertHereError :: Show a => a -> EpPath -> Maybe Symbol -> Symbol
+  epFieldRecAssertHereError t nonHere fieldAnn =
+    unlines ["EpFieldRecAssertHereError ", show_ t, show_ nonHere, show_ fieldAnn]
 
-  epFieldRecEntrypointError :: Show b => b -> EpPath -> Symbol -> Symbol -> Symbol -> Symbol
-  epFieldRecEntrypointError ann epPath fieldName entrypointNameA entrypointNameB = unlines
+  epFieldRecEntrypointError :: Show b => b -> EpPath -> Symbol -> Symbol -> Symbol -> Maybe Symbol -> Symbol
+  epFieldRecEntrypointError ann epPath fieldName entrypointNameA entrypointNameB fieldAnn = unlines
     ["EpFieldRec _ ", show_ ann, " ",
     show_ epPath, " ", fieldName,
     " _ _: expected ", entrypointNameA,
-    " but got ", entrypointNameB]
+    " but got ", entrypointNameB, show_ fieldAnn]
 
-  epFieldRecResolveOrError :: (Show a, Show b) => Symbol -> Symbol -> a -> b -> EpPath -> Symbol -> Symbol
-  epFieldRecResolveOrError aa ab as bs nonOrEpPath fieldName = unlines
+  epFieldRecResolveOrError :: (Show a, Show b) => Symbol -> Symbol -> a -> b -> EpPath -> Symbol -> Maybe Symbol -> Symbol
+  epFieldRecResolveOrError aa ab as bs nonOrEpPath fieldName fieldAnn = unlines
     ["EpFieldRecResolveOr _ _ ", show_ aa,
     " ", show_ ab,
     " ", show_ as,
     " ", show_ bs, " ",
-    show_ nonOrEpPath, " ", fieldName]
+    show_ nonOrEpPath, " ", fieldName, show_ fieldAnn]
 
-  epFieldRecResolvePairError :: (Show a, Show b) => a -> b -> EpPath -> Symbol -> Symbol
-  epFieldRecResolvePairError as bs nonOrEpPath fieldName = unlines
+  epFieldRecResolvePairError :: (Show a, Show b) => a -> b -> EpPath -> Symbol -> Maybe Symbol -> Symbol
+  epFieldRecResolvePairError as bs nonOrEpPath fieldName fieldAnn = unlines
     ["EpFieldRecResolvePair _ _ ", show_ as,
     " ", show_ bs, " ",
-    show_ nonOrEpPath, " ", fieldName]
+    show_ nonOrEpPath, " ", fieldName, show_ fieldAnn]
 
   |])
 

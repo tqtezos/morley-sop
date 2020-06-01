@@ -38,51 +38,51 @@ $(singletonsOnly [d|
   epPaths :: forall t. SymAnn t -> [EpPath]
   epPaths ann = sort (epPathsRaw ann)
 
-  -- (current path -> isPairField -> fieldName -> newFieldName)
-  traverseEpPaths :: forall s t. (EpPath -> Bool -> Symbol -> State' s Symbol) -> SymAnn t -> State' s (SymAnn t)
-  traverseEpPaths fs (ATOr ann aa ab as bs) =
-    (fs Here False aa >>>= \aa' ->
-    (fs Here False ab >>>= \ab' ->
-    ATOr ann aa' ab' <$$>
-    (traverseEpPaths (fs . ((:+) aa')) as) <<*>>
-    (traverseEpPaths (fs . ((:+) ab')) bs)
-    ))
-  traverseEpPaths fs (ATPair ann aa ab as bs) =
-    ATPair ann aa ab <$$>
-    traverseEpPaths fs as <<*>>
-    traverseEpPaths fs bs
-  traverseEpPaths fs (ATOpq ta) =
-    (ATOpq . flip setTypeAnn ta) <$$>
-    fs Here True (tOpqTypeAnn ta)
-
-  -- count the number of occurrences of the path, then append "_n" if non-zero.
-  -- skip non-pair-field empty annotations
-  uniqifyEpPathsStep :: EpPath -> Bool -> Symbol -> State' (ListMap (EpPath, Symbol) Nat) Symbol
-  uniqifyEpPathsStep epPath isPairField annotation =
-    bool_
-      ((lookupModifyListMap
-        0
-        (\numAtPath ->
-          ( bool_
-              (annotation <> "_" <> show_ numAtPath)
-              annotation
-              (numAtPath == 0)
-          , numAtPath + 1
-          )
-        )
-        (epPath, annotation) <$$>
-        getState'
-        ) >>>= \(annotation', pathsMap') ->
-          putState' pathsMap' *>> pureState' annotation'
-      )
-      (pureState' annotation)
-      -- (annotation == "" && not isPairField)
-      False
-
-  uniqifyEpPaths :: forall t. SymAnn t -> SymAnn t
-  uniqifyEpPaths ann =
-    traverseEpPaths uniqifyEpPathsStep ann `evalState'`
-    emptyListMap
+  -- -- (current path -> isPairField -> fieldName -> newFieldName)
+  -- traverseEpPaths :: forall s t. (EpPath -> Bool -> Symbol -> State' s Symbol) -> SymAnn t -> State' s (SymAnn t)
+  -- traverseEpPaths fs (ATOr ann aa ab as bs) =
+  --   (fs Here False aa >>>= \aa' ->
+  --   (fs Here False ab >>>= \ab' ->
+  --   ATOr ann aa' ab' <$$>
+  --   (traverseEpPaths (fs . ((:+) aa')) as) <<*>>
+  --   (traverseEpPaths (fs . ((:+) ab')) bs)
+  --   ))
+  -- traverseEpPaths fs (ATPair ann aa ab as bs) =
+  --   ATPair ann aa ab <$$>
+  --   traverseEpPaths fs as <<*>>
+  --   traverseEpPaths fs bs
+  -- traverseEpPaths fs (ATOpq ta) =
+  --   (ATOpq . flip setTypeAnn ta) <$$>
+  --   fs Here True (tOpqTypeAnn ta)
+  --
+  -- -- count the number of occurrences of the path, then append "_n" if non-zero.
+  -- -- skip non-pair-field empty annotations
+  -- uniqifyEpPathsStep :: EpPath -> Bool -> Symbol -> State' (ListMap (EpPath, Symbol) Nat) Symbol
+  -- uniqifyEpPathsStep epPath isPairField annotation =
+  --   bool_
+  --     ((lookupModifyListMap
+  --       0
+  --       (\numAtPath ->
+  --         ( bool_
+  --             (annotation <> "_" <> show_ numAtPath)
+  --             annotation
+  --             (numAtPath == 0)
+  --         , numAtPath + 1
+  --         )
+  --       )
+  --       (epPath, annotation) <$$>
+  --       getState'
+  --       ) >>>= \(annotation', pathsMap') ->
+  --         putState' pathsMap' *>> pureState' annotation'
+  --     )
+  --     (pureState' annotation)
+  --     -- (annotation == "" && not isPairField)
+  --     False
+  --
+  -- uniqifyEpPaths :: forall t. SymAnn t -> SymAnn t
+  -- uniqifyEpPaths ann =
+  --   traverseEpPaths uniqifyEpPathsStep ann `evalState'`
+  --   emptyListMap
 
   -- uniqifyWith :: Symbol -> Symbol -> Symbol
   -- uniqifyWith x y =
@@ -114,17 +114,27 @@ $(singletonsOnly [d|
 
   uniqifyEpPathsSimple :: forall t. SymAnn t -> SymAnn t
   uniqifyEpPathsSimple (ATOr ann aa ab as bs) =
-    ATOr ann (aa `uniqifyWithA` ab)  (ab `uniqifyWithB` aa) (uniqifyEpPathsSimple as) (uniqifyEpPathsSimple bs)
+    ATOr
+      ann
+      (aa `uniqifyWithA` ab)
+      (ab `uniqifyWithB` aa)
+      (uniqifyEpPathsSimple as)
+      (uniqifyEpPathsSimple bs)
   uniqifyEpPathsSimple (ATPair ann aa ab as bs) =
-    ATPair ann (aa `uniqifyWithA` ab) (ab `uniqifyWithB` aa) (uniqifyEpPathsSimple as) (uniqifyEpPathsSimple bs)
+    ATPair
+      ann
+      (aa `uniqifyWithA` ab)
+      (ab `uniqifyWithB` aa)
+      (uniqifyEpPathsSimple as)
+      (uniqifyEpPathsSimple bs)
   uniqifyEpPathsSimple (ATOpq ta) = ATOpq ta
 
   -- uniqueUnion :: Eq a => [a] -> [a] -> (Bool, [a])
-
+  --
   -- the idea is to cache the sorted lists (sets) of
   -- all EpPath's: then if there's a duplicate, we need to
   -- uniqify
-
+  --
   -- uniqifyEpPaths2' :: forall t. SymAnn t -> ([EpPath], SymAnn t)
   -- uniqifyEpPaths2' (ATOr ann aa ab as bs) =
   --   (epPathsAB, ATOr ann aa (ab `uniqifyWith` aa) (uniqifyEpPaths2' as) (uniqifyEpPaths2' bs)
@@ -139,8 +149,8 @@ $(singletonsOnly [d|
   -- uniqifyEpPaths2' (ATPair ann aa ab as bs) =
   --   ATPair ann aa (ab `uniqifyWith` aa) (uniqifyEpPaths2' as) (uniqifyEpPaths2' bs)
   -- uniqifyEpPaths2' (ATOpq ta) = ATOpq ta
-
-
+  --
+  --
   -- uniqifyEpPaths2 :: forall t. SymAnn t -> SymAnn t
   -- uniqifyEpPaths2 (ATOr ann aa ab as bs) =
   --   ATOr ann aa (ab `uniqifyWith` aa) _ _

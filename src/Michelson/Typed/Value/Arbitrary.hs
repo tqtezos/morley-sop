@@ -1,10 +1,10 @@
+{-# OPTIONS -Wno-orphans -Wno-missing-export-lists #-}
 
 module Michelson.Typed.Value.Arbitrary where
 
 import Control.Applicative
 import Control.Monad
 import Data.Function
-import Data.Functor
 import Data.Type.Equality
 
 import Michelson.Typed.T
@@ -15,10 +15,8 @@ import Michelson.Typed.Instr
 import Michelson.Typed.Scope
 import Michelson.Typed.EntryPoints
 import Michelson.Typed.Annotation
-import Michelson.Untyped.Annotation
 
-import Util.Test.Arbitrary
-import Michelson.Test.Gen
+import Util.Test.Arbitrary ()
 
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Gen
@@ -135,7 +133,7 @@ prfArbitraryCValue =
 -- | Note:
 -- - `VLam` is `FAILWITH`
 -- - Assertions are used since `ParameterScope` is opaque: `assertNestedBigMapsAbsense` and `assertOpAbsense`
-instance (instr ~ Instr, SingI ts, ParameterScope ts) => Arbitrary (Value' instr ts) where
+instance (instr ~ Instr, ParameterScope ts) => Arbitrary (Value' instr ts) where
   arbitrary =
     case sing @ts of
       STc t -> withDict (prfArbitraryCValue t) $ VC <$> arbitrary
@@ -143,15 +141,15 @@ instance (instr ~ Instr, SingI ts, ParameterScope ts) => Arbitrary (Value' instr
       STUnit -> return VUnit
       STSignature -> VSignature <$> arbitrary
       STChainId -> VChainId <$> arbitrary
-      STOption t -> VOption <$> arbitrary
-      STList t -> VList <$> arbitrary
+      STOption _t -> VOption <$> arbitrary
+      STList _t -> VList <$> arbitrary
       STSet t -> withDict (prfArbitraryCValue t) $ VSet <$> arbitrary
       -- STOperation -> _
-      STContract arg -> VContract <$> arbitrary <*> return sepcCallRootUnsafe
+      STContract _arg -> VContract <$> arbitrary <*> return sepcCallRootUnsafe
       STPair l r -> assertNestedBigMapsAbsense l $ assertNestedBigMapsAbsense r $ assertOpAbsense l $ assertOpAbsense r $ VPair <$> arbitrary
       STOr l r -> assertNestedBigMapsAbsense l $ assertNestedBigMapsAbsense r $ assertOpAbsense l $ assertOpAbsense r $ VOr <$> arbitrary
-      STLambda inp out -> return $ VLam (RfAlwaysFails FAILWITH)
-      STMap k v -> withDict (prfArbitraryCValue k) $ VMap <$> arbitrary
+      STLambda _inp _out -> return $ VLam (RfAlwaysFails FAILWITH)
+      STMap k _v -> withDict (prfArbitraryCValue k) $ VMap <$> arbitrary
       STBigMap k v -> withDict (prfArbitraryCValue k) $ assertNestedBigMapsAbsense v $ VBigMap <$> arbitrary
 
 instance (Arbitrary a, SingI t) => Arbitrary (Annotated a t) where

@@ -195,13 +195,13 @@ parsePrintValueFromContractSource forceSingleLine contractSrc =
     Right (TypeCheck.SomeContract (FullContract _ (ParamNotesUnsafe paramNotes' :: ParamNotes cp) _)) ->  -- caseAltE
       case toSing (Michelson.annotatedFromNotes paramNotes') of
         SomeSing (sann :: Sing ann) ->
-          let sann' =  sFieldToTypeAnn (sUniqifyEpPaths (singToAnnotatedAlg sann)) in
+          let sann' =  (sUniqifyEpPathsSimple (singToAnnotatedAlg sann)) in
             withDict1 (singToTAlg (sing @cp)) $
             traceShow' ("original" :: String, fromSing (singToAnnotatedAlg sann)) $
-            traceShow' ("next" :: String, fromSing (sUniqifyEpPaths (singToAnnotatedAlg sann))) $
+            -- traceShow' ("next" :: String, fromSing (sUniqifyEpPaths (singToAnnotatedAlg sann))) $
             traceShow' ("next_uniquified" :: String, fromSing sann') $
             withDict1 sann' $
-            parsePrintValue @(ToTAlg cp) @(FieldToTypeAnn (UniqifyEpPaths (ToAnnotatedAlg ann))) forceSingleLine
+            parsePrintValue @(ToTAlg cp) @((UniqifyEpPathsSimple (ToAnnotatedAlg ann))) forceSingleLine
 
 parsePrintValueFromContract :: IO ()
 parsePrintValueFromContract = do
