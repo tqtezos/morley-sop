@@ -1,5 +1,47 @@
 {-# LANGUAGE NoRebindableSyntax #-}
 
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Data.Singletons.TH.Cases
+-- Copyright   :  (C) 2013 Richard Eisenberg; 2020 Michael J. Klein, TQ Tezos
+-- License     :  BSD-style (see LICENSE)
+-- Stability   :  experimental
+-- Portability :  non-portable
+--
+-- A simple modification of `sCases` to allow generating the
+-- body with case information: @(`Name` -> [`Name`] -> q `Exp`)@
+-- and some utilities.
+--
+-- @
+--  Copyright (c) 2012, Richard Eisenberg
+--  All rights reserved.
+--
+--  Redistribution and use in source and binary forms, with or without
+--  modification, are permitted provided that the following conditions are met:
+--
+--  1. Redistributions of source code must retain the above copyright notice, this
+--  list of conditions and the following disclaimer.
+--
+--  2. Redistributions in binary form must reproduce the above copyright notice,
+--  this list of conditions and the following disclaimer in the documentation
+--  and/or other materials provided with the distribution.
+--
+--  3. Neither the name of the author nor the names of its contributors may be
+--  used to endorse or promote products derived from this software without
+--  specific prior written permission.
+--
+--  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+--  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+--  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+--  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+--  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+--  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+--  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+--  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+--  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+--  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-- @
+----------------------------------------------------------------------------
 module Data.Singletons.TH.Cases where
 
 import Prelude (otherwise, error)
@@ -67,6 +109,7 @@ sCases' tyName expq bodyq = do
               ++ (show tyName)
     _ -> fail $ "Cannot find " ++ show tyName
 
+-- | Utility for `sCases'`
 buildCases :: forall m. DsMonad m
            => [(Name, Int)]
            -> m Exp  -- scrutinee
@@ -92,11 +135,11 @@ tysOfConFields :: DConFields -> [DType]
 tysOfConFields (DNormalC _ stys) = map snd stys
 tysOfConFields (DRecC vstys)   = map (\(_,_,ty) -> ty) vstys
 
--- extract the name and number of arguments to a constructor
+-- | Extract the name and number of arguments to a constructor
 extractNameArgs :: DCon -> (Name, Int)
 extractNameArgs = fmap length . extractNameTypes -- liftSnd = fmap
 
--- extract the name and types of constructor arguments
+-- | Extract the name and types of constructor arguments
 extractNameTypes :: DCon -> (Name, [DType])
 extractNameTypes (DCon _ _ n fields _) = (n, tysOfConFields fields)
 
@@ -115,20 +158,26 @@ prefixConName pre tyPre n = case (nameBase n) of
 
 -- Data.Singletons.Names
 ------------------------------------------------------------------------
+-- | Singletons package
 singPkg :: String
 singPkg = fromMaybe (error "singPkg name not resolved") (namePackage ''SingI)
 -- (LitE . StringL . loc_package) `liftM` location
 
+-- | Make singletons name
 mk_name_d :: String -> String -> Name
 mk_name_d = mkNameG_d singPkg
 
+-- | `SCons`
 sconsName = mk_name_d "Data.Singletons.Prelude.Instances" "SCons"
+-- | `SNil`
 snilName = mk_name_d "Data.Singletons.Prelude.Instances" "SNil"
 
+-- | Tuple singleton `Name`'s
 mkTupleDataName :: Int -> Name
 mkTupleDataName n = mk_name_d "Data.Singletons.Prelude.Instances" $
                     "STuple" ++ (show n)
 
+-- | Data constructor singleton `Name`'s
 singDataConName :: Name -> Name
 singDataConName nm
   | nm == '[]                                  = snilName

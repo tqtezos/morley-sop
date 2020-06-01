@@ -28,22 +28,16 @@ $(singletonsOnly [d|
 
   epFieldRecResolveOr :: forall f r ta tb. (AltError [Symbol] f, Show r) => (Symbol, TOpq -> Symbol -> f r) -> (TAlg, TAlg) -> (Symbol, Symbol) -> SymAnn ta -> SymAnn tb -> EpPath -> f r
   epFieldRecResolveOr (name, fs) (ta, tb) (aa, ab) as bs ((:+) entrypointName epPath) =
-    bool_
-      (bool_
-        (altErr [epFieldRecEntrypointError as epPath name aa entrypointName])
-        (epFieldRec name fs ta as epPath)
-        (aa == entrypointName)
-      )
-      (epFieldRec name fs ta as (entrypointName :+ epPath))
-      (aa == "") <||>
-    bool_
-      (bool_
-        (altErr [epFieldRecEntrypointError bs epPath name ab entrypointName])
-        (epFieldRec name fs tb bs epPath)
-        (ab == entrypointName)
-      )
-      (epFieldRec name fs tb bs (entrypointName :+ epPath))
-      (ab == "")
+    (bool_
+      (altErr [epFieldRecEntrypointError as epPath name aa entrypointName])
+      (epFieldRec name fs ta as epPath)
+      (aa == entrypointName)
+    ) <||>
+    (bool_
+      (altErr [epFieldRecEntrypointError bs epPath name ab entrypointName])
+      (epFieldRec name fs tb bs epPath)
+      (ab == entrypointName)
+    )
   epFieldRecResolveOr (name, _fs) _tab (aa, ab) as bs ((:*) xs ys) =
     altFail [epFieldRecResolveOrError aa ab as bs ((:*) xs ys) name]
   epFieldRecResolveOr (name, _fs) _tab (aa, ab) as bs Here =

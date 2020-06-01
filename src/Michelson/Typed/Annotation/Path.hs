@@ -55,9 +55,9 @@ deriving instance Show a => Show (Path a)
 
 -- instance Show (Path Text) where
 --   show = T.unpack . ppPath
-
+--
 --   showsPrec _ Here = showString ""
-
+--
 --   showsPrec p ((:*) x y) = showParen (p > 1) $
 --     showsPrec 2 x . showString " * " . showsPrec 1 y
 --   showsPrec p ((:+) x y) = showParen (p > 0) $
@@ -68,7 +68,7 @@ instance ToJSON (Path Text) where
 
 -- instance Show a => ToJSON (Path a) where
 --   toJSON = toJSON . id @String . show
-
+--
 -- instance FromJSON a => FromJSON (Path a)
 
 $(genSingletons [''Path])

@@ -29,14 +29,8 @@ $(singletonsOnly [d|
   -- All EpPath's, unsorted
   epPathsRaw :: forall t. SymAnn t -> [EpPath]
   epPathsRaw (ATOr _ aa ab as bs) =
-    bool_
-      ((:+) aa <$> epPathsRaw as)
-      (epPathsRaw as)
-      (aa == "") ++
-    bool_
-      ((:+) ab <$> epPathsRaw bs)
-      (epPathsRaw bs)
-      (ab == "")
+    ((:+) aa <$> epPathsRaw as) ++
+    ((:+) ab <$> epPathsRaw bs)
   epPathsRaw (ATPair _ _ _ as bs) = liftA2 (:*) (epPathsRaw as) (epPathsRaw bs)
   epPathsRaw (ATOpq _ta) = [Here]
 
@@ -50,14 +44,8 @@ $(singletonsOnly [d|
     (fs Here False aa >>>= \aa' ->
     (fs Here False ab >>>= \ab' ->
     ATOr ann aa' ab' <$$>
-    bool_
-      (traverseEpPaths (fs . ((:+) aa')) as) -- (:+) aa <$>
-      (traverseEpPaths fs as)
-      (aa' == "") <<*>>
-    bool_
-      (traverseEpPaths (fs . ((:+) ab')) bs) -- (:+) ab <$>
-      (traverseEpPaths fs bs)
-      (ab' == "")
+    (traverseEpPaths (fs . ((:+) aa')) as) <<*>>
+    (traverseEpPaths (fs . ((:+) ab')) bs)
     ))
   traverseEpPaths fs (ATPair ann aa ab as bs) =
     ATPair ann aa ab <$$>
@@ -96,13 +84,13 @@ $(singletonsOnly [d|
     traverseEpPaths uniqifyEpPathsStep ann `evalState'`
     emptyListMap
 
-  uniqifyWith :: Symbol -> Symbol -> Symbol
-  uniqifyWith x y =
-    bool_
-      x
-      (x <> "_2")
-      (x == y)
-
+  -- uniqifyWith :: Symbol -> Symbol -> Symbol
+  -- uniqifyWith x y =
+  --   bool_
+  --     x
+  --     (x <> "_2")
+  --     (x == y)
+  --
   -- uniqifyEpPathsSimple :: forall t. SymAnn t -> SymAnn t
   -- uniqifyEpPathsSimple (ATOr ann aa ab as bs) =
   --   ATOr ann aa (ab `uniqifyWith` aa) (uniqifyEpPathsSimple as) (uniqifyEpPathsSimple bs)
