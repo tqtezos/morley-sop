@@ -60,7 +60,7 @@ tt =
     ssa = sUniqifyEpPathsSimple ((singToAnnotatedAlg (sing @ExampleAnn)))
     tupleToList (x, y) = [x, y]
 
--- UniqifyEpPathsSimple
+-- UniqifyEpPaths
 test_IsoEpValue :: TestTree
 test_IsoEpValue = testProperty "Iso runEpValue" $
   property $ \t ->
@@ -84,14 +84,14 @@ test_IsoEpValue = testProperty "Iso runEpValue" $
                   \(ann :: Annotated Text t') (x :: Value t') ->
                   case toSing ann of
                     SomeSing (sann :: Sing ann') ->
-                      let singToAnnotatedAlgSann = ((sUniqifyEpPathsSimple (singToAnnotatedAlg sann)) :: Sing ((UniqifyEpPathsSimple (ToAnnotatedAlg ann')))) in -- singToAnnotatedAlg sann in
+                      let singToAnnotatedAlgSann = ((sUniqifyEpPaths (singToAnnotatedAlg sann)) :: Sing ((UniqifyEpPaths (ToAnnotatedAlg ann')))) in -- singToAnnotatedAlg sann in
                       counterexample (("epPaths: "<>) . show $ fromSing (sEpPaths (singToAnnotatedAlg sann))) $
                       counterexample (("uniqified epPaths: "<>) . show $ fromSing (sEpPaths singToAnnotatedAlgSann)) $
-                      counterexample (("uniqified epPaths fields: \n"<>) . unlines . fmap show $ fromSing (singFun1 @(EpFieldNamesErrMSym2 (ToTAlg t') ((UniqifyEpPathsSimple (ToAnnotatedAlg ann')))) (sEpFieldNamesErrM singToTAlgSt singToAnnotatedAlgSann) `sFmap` sEpPaths singToAnnotatedAlgSann)) $
-                      -- counterexample (("uniqified epPaths: "<>) . show $ fromSing (sEpPaths (sUniqifyEpPathsSimple (sFieldToTypeAnn (singToAnnotatedAlg sann))))) $
+                      counterexample (("uniqified epPaths fields: \n"<>) . unlines . fmap show $ fromSing (singFun1 @(EpFieldNamesErrMSym2 (ToTAlg t') ((UniqifyEpPaths (ToAnnotatedAlg ann')))) (sEpFieldNamesErrM singToTAlgSt singToAnnotatedAlgSann) `sFmap` sEpPaths singToAnnotatedAlgSann)) $
+                      -- counterexample (("uniqified epPaths: "<>) . show $ fromSing (sEpPaths (sUniqifyEpPaths (sFieldToTypeAnn (singToAnnotatedAlg sann))))) $
                       -- counterexample (("fieldToTypeAnn: "<>) . show $ fromSing (sFieldToTypeAnn (singToAnnotatedAlg sann))) $
                       -- counterexample (("uniqified: "<>) . show $ fromSing singToAnnotatedAlgSann) $
-                      counterexample (("uniqified2: "<>) . show $ fromSing ((sUniqifyEpPathsSimple (singToAnnotatedAlg sann)))) $
+                      counterexample (("uniqified2: "<>) . show $ fromSing ((sUniqifyEpPaths (singToAnnotatedAlg sann)))) $
                       -- counterexample (("fields: "<>) . show $ fromSing (EpFieldNamesErrM singToTAlgSt singToAnnotatedAlgSann)) $
                       -- withDict (prfAllShowEpField @(AltE [String]) st singToAnnotatedAlgSann :: forall f t (ann :: SymAnn t) epPath xs. (forall t'. SingI t' => Show (f (ValueOpq t')))
   -- => Sing t -> Sing ann -> Sing epPath -> Sing xs -> Dict (SOP.All (SOP.Compose Show (EpField f t ann epPath)) xs)

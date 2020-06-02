@@ -39,6 +39,8 @@ import Data.Singletons.WrappedSing
 import Data.SOP (I(..), K(..), NP, NS)
 import qualified Data.SOP as SOP
 
+trace2 :: String -> a -> a
+trace2 = flip const
 
 -- after conversion, likely want to expose top-layer NS, currently encoded as NP (f :.: _):
 -- (f a -> m (g a)) -> NP f xs -> m (NS g xs)
@@ -130,15 +132,15 @@ nsToNP xss@(SOP.Z xs) =
     SCons sx sxs -> withDict1 sxs $
       withDict (prfAllShow @_ @g $ sing @xs) $
       withDict (prfAllShow @_ @(f :.: g) $ sing @xs) $
-      (\yss -> (trace . fromString . ("\n  nsToNP: SOP.Z\n"++) $ withDict1 sx $ show (xss, yss)) yss) $
+      (\yss -> (trace2 . fromString . ("\n  nsToNP: SOP.Z\n"++) $ withDict1 sx $ show (xss, yss)) yss) $
       Comp1 (pure xs)
-      SOP.:* (\yss -> (trace . fromString . ("\n  nsToNP: SOP.Z\n"++) $ withDict1 sx $ show (xss, yss)) yss) emptyNP
+      SOP.:* (\yss -> (trace2 . fromString . ("\n  nsToNP: SOP.Z\n"++) $ withDict1 sx $ show (xss, yss)) yss) emptyNP
 nsToNP xss@(SOP.S xs) =
   case sing @xs of
     SCons _ sxs -> withDict1 sxs $
       withDict (prfAllShow @_ @g $ sing @xs) $
       withDict (prfAllShow @_ @(f :.: g) $ sing @xs) $
-      (\yss -> (trace . fromString . ("\n  nsToNP: SOP.S\n"++) . show $ (xss, yss)) yss ) $
+      (\yss -> (trace2 . fromString . ("\n  nsToNP: SOP.S\n"++) . show $ (xss, yss)) yss ) $
       Comp1 (altErr . ("nsToNP SCons: " :) . (:[]) . show . fromSing $ sing @xs)
       SOP.:* nsToNP xs
 
@@ -159,10 +161,10 @@ runEpValue st sann xs =
   withDict1 sann $
   withDict (prfAllShow @_ @(EpFields f t ann) (sEpPaths sann)) $
   id $ do
-    let ys = join (trace . fromString . ("\n  runEpValue:\n"++) . show) $ toEpValueF st sann xs
+    let ys = join (trace2 . fromString . ("\n  runEpValue:\n"++) . show) $ toEpValueF st sann xs
     zs <-
       join
-        (trace . fromString . ("\n  runEpValue:\n" ++) . flip (showsPrec1 0) "") $
+        (trace2 . fromString . ("\n  runEpValue:\n" ++) . flip (showsPrec1 0) "") $
       runValueAlgT $
       set (lensEpValueF st sann) ys $ altErrValueAlgT ["runEpValue", show $ fromSing st] st
     return $ fromValueAlg zs
@@ -199,9 +201,9 @@ toEpValueF st sann (EpValue xs) =
   withDict (prfAllShowEpFields st sann $ sing @(EpPaths ann)) $
   EpValueF @f @t @ann $
   SOP.hcmap (Proxy @SingI) (wrapEpFields st sann . unComp1) $
-  join (trace . fromString . ("\n  after nsToNP:\n"++) . unlines . fmap ("  "++) . SOP.hcollapse . SOP.hcmap (Proxy @SingI) (\(Comp1 ys) -> SOP.K $ showsPrec1 0 ys "")) $
+  join (trace2 . fromString . ("\n  after nsToNP:\n"++) . unlines . fmap ("  "++) . SOP.hcollapse . SOP.hcmap (Proxy @SingI) (\(Comp1 ys) -> SOP.K $ showsPrec1 0 ys "")) $
   nsToNP @EpPath @f $
-  join (trace . fromString . ("\n  before nsToNP:\n"++) . show) $
+  join (trace2 . fromString . ("\n  before nsToNP:\n"++) . show) $
   xs
 
 -- unused

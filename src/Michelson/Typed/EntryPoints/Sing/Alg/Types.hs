@@ -56,7 +56,7 @@ $(singletonsOnly [d|
   epFieldRec' :: forall f r t. (AltError [Symbol] f, Show r) => Symbol -> (TOpq -> Maybe Symbol -> f r) -> TAlg -> SymAnn t -> EpPath -> Maybe Symbol -> f r
   epFieldRec' name fs (TOr ta tb) (ATOr _ aa ab as bs) epPath fieldAnn = epFieldRecResolveOr (name, fs) (ta, tb) (aa, ab) as bs epPath fieldAnn
   epFieldRec' name fs (TPair ta tb) (ATPair _ aa ab as bs) epPath fieldAnn = epFieldRecResolvePair (name, fs) (ta, tb) (aa, ab) as bs epPath fieldAnn
-  epFieldRec' _name fs (TOpq t1) (ATOpq ta) epPath fieldAnn =
+  epFieldRec' _name fs (TOpq t1) (ATOpq _ta) epPath fieldAnn =
     bool_ (altFail [epFieldRecAssertHereError t1 epPath fieldAnn]) (pure ()) (epPath == Here) *>
     (fs t1 fieldAnn)
 

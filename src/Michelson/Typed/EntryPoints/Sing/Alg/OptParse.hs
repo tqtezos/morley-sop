@@ -65,7 +65,7 @@ import qualified Data.Text.Lazy.IO as TL
 
 
 traceShow' :: Show a => a -> b -> b
-traceShow' = trace . fromString . ("\n" <>) . show
+traceShow' = flip const -- trace . fromString . ("\n" <>) . show
 -- flip const
 
 parseNS :: forall a m (f :: a -> Type) (xs :: [a]). (HasDict1 a, Alternative m, SingI xs)

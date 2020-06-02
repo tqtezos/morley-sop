@@ -38,65 +38,52 @@ $(singletonsOnly [d|
   epPaths :: forall t. SymAnn t -> [EpPath]
   epPaths ann = sort (epPathsRaw ann)
 
-  -- -- (current path -> isPairField -> fieldName -> newFieldName)
-  -- traverseEpPaths :: forall s t. (EpPath -> Bool -> Symbol -> State' s Symbol) -> SymAnn t -> State' s (SymAnn t)
-  -- traverseEpPaths fs (ATOr ann aa ab as bs) =
-  --   (fs Here False aa >>>= \aa' ->
-  --   (fs Here False ab >>>= \ab' ->
-  --   ATOr ann aa' ab' <$$>
-  --   (traverseEpPaths (fs . ((:+) aa')) as) <<*>>
-  --   (traverseEpPaths (fs . ((:+) ab')) bs)
-  --   ))
-  -- traverseEpPaths fs (ATPair ann aa ab as bs) =
-  --   ATPair ann aa ab <$$>
-  --   traverseEpPaths fs as <<*>>
-  --   traverseEpPaths fs bs
-  -- traverseEpPaths fs (ATOpq ta) =
-  --   (ATOpq . flip setTypeAnn ta) <$$>
-  --   fs Here True (tOpqTypeAnn ta)
-  --
-  -- -- count the number of occurrences of the path, then append "_n" if non-zero.
-  -- -- skip non-pair-field empty annotations
-  -- uniqifyEpPathsStep :: EpPath -> Bool -> Symbol -> State' (ListMap (EpPath, Symbol) Nat) Symbol
-  -- uniqifyEpPathsStep epPath isPairField annotation =
-  --   bool_
-  --     ((lookupModifyListMap
-  --       0
-  --       (\numAtPath ->
-  --         ( bool_
-  --             (annotation <> "_" <> show_ numAtPath)
-  --             annotation
-  --             (numAtPath == 0)
-  --         , numAtPath + 1
-  --         )
-  --       )
-  --       (epPath, annotation) <$$>
-  --       getState'
-  --       ) >>>= \(annotation', pathsMap') ->
-  --         putState' pathsMap' *>> pureState' annotation'
-  --     )
-  --     (pureState' annotation)
-  --     -- (annotation == "" && not isPairField)
-  --     False
-  --
-  -- uniqifyEpPaths :: forall t. SymAnn t -> SymAnn t
-  -- uniqifyEpPaths ann =
-  --   traverseEpPaths uniqifyEpPathsStep ann `evalState'`
-  --   emptyListMap
+  -- (current path -> isPairField -> fieldName -> newFieldName)
+  traverseEpPaths :: forall s t. (EpPath -> Bool -> Symbol -> State' s Symbol) -> SymAnn t -> State' s (SymAnn t)
+  traverseEpPaths fs (ATOr ann aa ab as bs) =
+    (fs Here False aa >>>= \aa' ->
+    (fs Here False ab >>>= \ab' ->
+    ATOr ann aa' ab' <$$>
+    (traverseEpPaths (fs . ((:+) aa')) as) <<*>>
+    (traverseEpPaths (fs . ((:+) ab')) bs)
+    ))
+  traverseEpPaths fs (ATPair ann aa ab as bs) =
+    (fs Here True aa >>>= \aa' ->
+    (fs Here True ab >>>= \ab' ->
+    ATPair ann aa' ab' <$$>
+    traverseEpPaths fs as <<*>>
+    traverseEpPaths fs bs
+    ))
+  traverseEpPaths _fs (ATOpq ta) = pureState' (ATOpq ta)
 
-  -- uniqifyWith :: Symbol -> Symbol -> Symbol
-  -- uniqifyWith x y =
-  --   bool_
-  --     x
-  --     (x <> "_2")
-  --     (x == y)
-  --
-  -- uniqifyEpPathsSimple :: forall t. SymAnn t -> SymAnn t
-  -- uniqifyEpPathsSimple (ATOr ann aa ab as bs) =
-  --   ATOr ann aa (ab `uniqifyWith` aa) (uniqifyEpPathsSimple as) (uniqifyEpPathsSimple bs)
-  -- uniqifyEpPathsSimple (ATPair ann aa ab as bs) =
-  --   ATPair ann aa (ab `uniqifyWith` aa) (uniqifyEpPathsSimple as) (uniqifyEpPathsSimple bs)
-  -- uniqifyEpPathsSimple (ATOpq ta) = ATOpq ta
+  -- count the number of occurrences of the path, then append "_n" if non-zero.
+  -- skip non-pair-field empty annotations
+  uniqifyEpPathsStep :: EpPath -> Bool -> Symbol -> State' (ListMap (EpPath, Symbol) Nat) Symbol
+  uniqifyEpPathsStep epPath _isPairField annotation =
+    bool_
+      ((lookupModifyListMap
+        0
+        (\numAtPath ->
+          ( bool_
+              (annotation <> "_" <> show_ numAtPath)
+              annotation
+              (numAtPath == 0)
+          , numAtPath + 1
+          )
+        )
+        (epPath, annotation) <$$>
+        getState'
+        ) >>>= \(annotation', pathsMap') ->
+          putState' pathsMap' *>> pureState' annotation'
+      )
+      (pureState' annotation)
+      -- (annotation == "" && not isPairField)
+      False
+
+  uniqifyEpPaths :: forall t. SymAnn t -> SymAnn t
+  uniqifyEpPaths ann =
+    traverseEpPaths uniqifyEpPathsStep ann `evalState'`
+    emptyListMap
 
   uniqifyWithA :: Symbol -> Symbol -> Symbol
   uniqifyWithA x y =
@@ -112,6 +99,19 @@ $(singletonsOnly [d|
       (x <> "_2")
       (x == y)
 
+  -- uniqifyWith :: Symbol -> Symbol -> Symbol
+  -- uniqifyWith x y =
+  --   bool_
+  --     x
+  --     (x <> "_2")
+  --     (x == y)
+  --
+  -- uniqifyEpPathsSimple :: forall t. SymAnn t -> SymAnn t
+  -- uniqifyEpPathsSimple (ATOr ann aa ab as bs) =
+  --   ATOr ann aa (ab `uniqifyWith` aa) (uniqifyEpPathsSimple as) (uniqifyEpPathsSimple bs)
+  -- uniqifyEpPathsSimple (ATPair ann aa ab as bs) =
+  --   ATPair ann aa (ab `uniqifyWith` aa) (uniqifyEpPathsSimple as) (uniqifyEpPathsSimple bs)
+  -- uniqifyEpPathsSimple (ATOpq ta) = ATOpq ta
   uniqifyEpPathsSimple :: forall t. SymAnn t -> SymAnn t
   uniqifyEpPathsSimple (ATOr ann aa ab as bs) =
     ATOr
@@ -160,7 +160,6 @@ $(singletonsOnly [d|
   -- uniqifyEpPaths2 (ATPair ann aa ab as bs) =
   --   ATPair ann aa (ab `uniqifyWith` aa) (uniqifyEpPaths2 as) (uniqifyEpPaths2 bs)
   -- uniqifyEpPaths2 (ATOpq ta) = ATOpq ta
-
 
   |])
 
