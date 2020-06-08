@@ -7,8 +7,9 @@ module Michelson.Typed.EntryPoints.Sing.Alg.Fields where
 import Data.Kind
 import Data.Functor.Classes
 import Text.Show
+import Data.String
 import GHC.Generics ((:.:)(..))
-import Prelude hiding (Map, All, unwords, show, set)
+import Prelude hiding (Map, All, unwords, show, set, unlines)
 
 import Control.AltError
 import Data.AltError
@@ -30,6 +31,9 @@ import qualified Data.SOP as SOP
 import Data.Singletons
 import Data.Singletons.Prelude.List
 import Data.Constraint
+
+trace3 :: String -> a -> a
+trace3 = flip const -- trace . fromString -- flip const
 
 data EpFields (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) where
   EpFields :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). ()
@@ -80,7 +84,7 @@ unwrapEpFields st sann (EpFields sepPath (RunPureAltE xs)) =
 -- @
 --
 -- to `NP`
-wrapNP :: forall a (f :: Type -> Type) (g :: a -> Type) (xs :: [a]). (Functor f, SOP.SListI xs)
+wrapNP :: forall a (f :: Type -> Type) (g :: a -> Type) (xs :: [a]). (Show1 f, Functor f, SOP.SListI xs)
   => f (NP g xs)
   -> NP (f :.: g) xs
 wrapNP xss =
@@ -92,7 +96,7 @@ wrapNP xss =
         wrapNP
         (\case { (SOP.:*) _ yss -> yss } <$> xss)
 
-wrapEpFields :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). (Functor f, SingI epPath)
+wrapEpFields :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). (Show1 f, Functor f, SingI epPath)
   => Sing t
   -> Sing ann
   -> f (EpFields I t ann epPath)
@@ -140,7 +144,7 @@ transEpFields trans' st sann (EpFields sepPath xs) =
           withDict (singAllSingI sxs) $
           SOP.hmap (transEpField trans' st sann sepPath) ys
 
-lensEpFields :: forall f (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). AltError [String] f
+lensEpFields :: forall f (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). (AltError [String] f, Show1 f)
   => Sing t
   -> Sing ann
   -> Sing epPath
@@ -161,7 +165,20 @@ lensEpFields st sann sepPath fs xs =
             SOP.hcfoldMap
               (Proxy @SingI)
               (\(EpField sfieldName ws) -> Endo $
-                (lensEpFieldT st sann sepPath sfieldName) `set` ws
+                \ss ->
+                  trace3
+                    (unlines
+                       [ "epPath"
+                       , fromString . show $ fromSing sepPath
+                       , "fieldName"
+                       , fromString . show $ fromSing sfieldName
+                       , "before"
+                       , fromString $ show ss
+                       , "after"
+                       , fromString $
+                         show (((lensEpFieldT st sann sepPath sfieldName) `set` ws) ss)
+                       ]) $
+                  ((lensEpFieldT st sann sepPath sfieldName) `set` ws) ss
               )
               zs
   ) <$>

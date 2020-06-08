@@ -13,11 +13,11 @@ import Prelude hiding (unwords, show, forM_, view, Lens')
 import Lorentz ((:!), IsoValue(..), EpdPlain, MText)
 import Michelson.Text
 import Lorentz.EntryPoints.Core
-import Michelson.Typed.T (T)
+-- import Michelson.Typed.T (T)
 import Michelson.Typed.Scope
 import Util.Named
 
-import Data.AltError
+-- import Data.AltError
 -- import Data.ListError
 -- import Data.AltError.Run
 -- import Data.Singletons.WrappedSing
@@ -29,9 +29,9 @@ import Michelson.Typed.T.Alg
 import Michelson.Typed.Value.Free
 
 -- import Data.Singletons
-import Data.Constraint
+-- import Data.Constraint
 
-import Data.Constraint.HasDict1
+-- import Data.Constraint.HasDict1
 
 -- import Data.SOP (I(..), K(..), NP)
 -- import qualified Data.SOP as SOP

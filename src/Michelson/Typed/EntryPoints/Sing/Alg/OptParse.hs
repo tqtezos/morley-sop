@@ -104,7 +104,7 @@ parseEpField :: forall f t ann epPath fieldName. (Applicative f, (forall (x :: T
 parseEpField =
   withDict1 (sEpFieldT @ErrM (sing @t) (sing @ann) (sing @epPath) (sing @fieldName)) $
   EpField (sing @fieldName) . join traceShow' <$>
-  parseRunAltE (pure $ WrapSing sing) (Comp1 . pure <$> parseValueOpq (T.unpack $ fromSing (sing @fieldName))) sing
+  parseRunAltE (pure $ WrapSing sing) (Comp1 . pure <$> parseValueOpq (show $ T.unpack <$> fromSing (sing @fieldName))) sing
 
 parseEpFields :: forall f t ann epPath. (Applicative f, (forall (x :: TOpq). SingI x => (Show (f (ValueOpq x)))), SingI t, SingI ann, SingI epPath)
   => Mod CommandFields (EpFields f t ann epPath)

@@ -1,3 +1,4 @@
+{-# OPTIONS -Wno-missing-export-lists -Wno-unused-type-patterns #-}
 
 module Data.Singletons.Prelude.Monad.State where
 

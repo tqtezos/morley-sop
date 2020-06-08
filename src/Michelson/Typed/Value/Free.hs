@@ -3,11 +3,14 @@
 
 module Michelson.Typed.Value.Free where
 
+import Prelude (Num(..))
+import Data.Semigroup
 import Data.Either
 import Control.Applicative
 import Control.Monad -- hiding (fail)
 -- import Control.Monad.Fail
 import Data.Function
+import Data.Functor.Classes
 import Data.Bifunctor
 import Data.Eq
 import Data.String
@@ -133,6 +136,11 @@ data ValueAlgT' instr f t where
   VTOr :: forall l r instr f. (ValueAlgT' instr f l, ValueAlgT' instr f r) -> ValueAlgT' instr f ('TOr l r)
 
   VTOpq :: forall t instr f. f (ValueOpq' instr t) -> ValueAlgT' instr f ('TOpq t)
+
+instance Show1 f => Show (ValueAlgT' instr f t) where
+  show (VTPair xs) = "VTPair " <> show xs
+  show (VTOr xs) = "VTOr " <> show xs
+  show (VTOpq xs) = "VTOpq " <> showsPrec1 0 xs ""
 
 -- | This uses `altErrValueAlgT` to provide empty fields
 toValueAlgT ::

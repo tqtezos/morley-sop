@@ -40,7 +40,7 @@ import Data.SOP (I(..), K(..), NP, NS)
 import qualified Data.SOP as SOP
 
 trace2 :: String -> a -> a
-trace2 = flip const
+trace2 = flip const -- trace . fromString -- flip const
 
 -- after conversion, likely want to expose top-layer NS, currently encoded as NP (f :.: _):
 -- (f a -> m (g a)) -> NP f xs -> m (NS g xs)
@@ -71,7 +71,7 @@ transEpValueF trans' st sann (EpValueF xs) =
   EpValueF $
   SOP.hmap (transEpFields trans' st sann) xs
 
-lensEpValueF :: forall f (t :: TAlg) (ann :: SymAnn t). (AltError [String] f)
+lensEpValueF :: forall f (t :: TAlg) (ann :: SymAnn t). (Show1 f, AltError [String] f)
   => Sing t
   -> Sing ann
   -> Lens' (ValueAlgT f t) (EpValueF f t ann)
@@ -82,7 +82,8 @@ lensEpValueF st sann fs xs =
     SOP.hcfoldMap
       (Proxy @SingI)
       (\zs@(EpFields sepPath _) -> Endo $
-        lensEpFields st sann sepPath `set` zs
+        \zs' ->
+          trace2 (unlines ["lensEpValueF", "path", show (fromSing sepPath), "before", show zs', "after", show ((lensEpFields st sann sepPath `set` zs) zs')]) $ (lensEpFields st sann sepPath `set` zs) zs'
       )
       ys
   ) <$>
@@ -161,11 +162,12 @@ runEpValue st sann xs =
   withDict1 sann $
   withDict (prfAllShow @_ @(EpFields f t ann) (sEpPaths sann)) $
   id $ do
-    let ys = join (trace2 . fromString . ("\n  runEpValue:\n"++) . show) $ toEpValueF st sann xs
+    let ys = join (trace2 . fromString . ("\n  runEpValue: after toEpValueF:\n"++) . show) $ toEpValueF st sann xs
     zs <-
       join
         (trace2 . fromString . ("\n  runEpValue:\n" ++) . flip (showsPrec1 0) "") $
       runValueAlgT $
+      join (trace2 . fromString . ("\n  runEpValue: after lensEpValueF:\n" ++) . show) $
       set (lensEpValueF st sann) ys $ altErrValueAlgT ["runEpValue", show $ fromSing st] st
     return $ fromValueAlg zs
 

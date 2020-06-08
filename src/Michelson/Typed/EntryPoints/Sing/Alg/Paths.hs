@@ -26,6 +26,7 @@ import Data.Singletons.Prelude.Bool
 import Data.Singletons.Prelude.List
 
 $(singletonsOnly [d|
+
   -- All EpPath's, unsorted
   epPathsRaw :: forall t. SymAnn t -> [EpPath]
   epPathsRaw (ATOr _ aa ab as bs) =
@@ -37,29 +38,54 @@ $(singletonsOnly [d|
   -- All EpPath's, sorted
   epPaths :: forall t. SymAnn t -> [EpPath]
   epPaths ann = sort (epPathsRaw ann)
+  |])
 
-  -- (current path -> isPairField -> fieldName -> newFieldName)
-  traverseEpPaths :: forall s t. (EpPath -> Bool -> Symbol -> State' s Symbol) -> SymAnn t -> State' s (SymAnn t)
+$(singletons [d|
+
+  traverseEpPaths :: forall a s t. (Path a -> a -> State' s a) -> AnnotatedAlg a t -> State' s (AnnotatedAlg a t)
   traverseEpPaths fs (ATOr ann aa ab as bs) =
-    (fs Here False aa >>>= \aa' ->
-    (fs Here False ab >>>= \ab' ->
+    (fs Here aa >>>= \aa' ->
+    (fs Here ab >>>= \ab' ->
     ATOr ann aa' ab' <$$>
-    (traverseEpPaths (fs . ((:+) aa')) as) <<*>>
-    (traverseEpPaths (fs . ((:+) ab')) bs)
+    (traverseEpPaths (fs . (:+) aa') as) <<*>>
+    (traverseEpPaths (fs . (:+) ab') bs)
     ))
   traverseEpPaths fs (ATPair ann aa ab as bs) =
-    (fs Here True aa >>>= \aa' ->
-    (fs Here True ab >>>= \ab' ->
+    (fs Here aa >>>= \aa' ->
+    (fs Here ab >>>= \ab' ->
     ATPair ann aa' ab' <$$>
-    traverseEpPaths fs as <<*>>
-    traverseEpPaths fs bs
+    traverseEpPaths (fs . (:*) Here) as <<*>>
+    traverseEpPaths (fs . (:*) Here) bs -- Here is used as a collection of all other paths
     ))
   traverseEpPaths _fs (ATOpq ta) = pureState' (ATOpq ta)
 
+  |])
+
+
+$(singletonsOnly [d|
+  -- (current path -> isPairField -> fieldName -> newFieldName)
+  -- traverseEpPaths :: forall s t. (EpPath -> Bool -> Symbol -> State' s Symbol) -> SymAnn t -> State' s (SymAnn t)
+  -- traverseEpPaths :: forall s t. (EpPath -> Bool -> Symbol -> State' s Symbol) -> SymAnn t -> State' s (SymAnn t)
+  -- traverseEpPaths fs (ATOr ann aa ab as bs) =
+  --   (fs Here False aa >>>= \aa' ->
+  --   (fs Here False ab >>>= \ab' ->
+  --   ATOr ann aa' ab' <$$>
+  --   (traverseEpPaths (fs . ((:+) aa')) as) <<*>>
+  --   (traverseEpPaths (fs . ((:+) ab')) bs)
+  --   ))
+  -- traverseEpPaths fs (ATPair ann aa ab as bs) =
+  --   (fs Here True aa >>>= \aa' ->
+  --   (fs Here True ab >>>= \ab' ->
+  --   ATPair ann aa' ab' <$$>
+  --   traverseEpPaths fs as <<*>>
+  --   traverseEpPaths fs bs
+  --   ))
+  -- traverseEpPaths _fs (ATOpq ta) = pureState' (ATOpq ta)
+
   -- count the number of occurrences of the path, then append "_n" if non-zero.
   -- skip non-pair-field empty annotations
-  uniqifyEpPathsStep :: EpPath -> Bool -> Symbol -> State' (ListMap (EpPath, Symbol) Nat) Symbol
-  uniqifyEpPathsStep epPath _isPairField annotation =
+  uniqifyEpPathsStep :: EpPath -> Symbol -> State' (ListMap (EpPath, Symbol) Nat) Symbol
+  uniqifyEpPathsStep epPath annotation = -- _isPairField
     bool_
       ((lookupModifyListMap
         0
@@ -162,4 +188,36 @@ $(singletonsOnly [d|
   -- uniqifyEpPaths2 (ATOpq ta) = ATOpq ta
 
   |])
+
+
+
+
+$(singletonsOnly [d|
+
+  -- count the number of occurrences of the path, then append "_n" if non-zero.
+  -- skip non-pair-field empty annotations
+  uniqifyEpPathsStepSimple :: EpPath -> Symbol -> State' (ListMap Symbol Nat) Symbol
+  uniqifyEpPathsStepSimple _epPath annotation =
+    (lookupModifyListMap
+      0
+      (\numAtPath ->
+        ( bool_
+            (annotation <> "_" <> show_ numAtPath)
+            annotation
+            (numAtPath == 0)
+        , numAtPath + 1
+        )
+      )
+      annotation <$$>
+      getState'
+      ) >>>= \(annotation', pathsMap') ->
+        putState' pathsMap' *>> pureState' annotation'
+
+  uniqifyEpPathsSimpler :: forall t. SymAnn t -> SymAnn t
+  uniqifyEpPathsSimpler ann =
+    traverseEpPaths uniqifyEpPathsStepSimple ann `evalState'`
+    emptyListMap
+
+  |])
+
 

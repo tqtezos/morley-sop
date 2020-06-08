@@ -1,4 +1,4 @@
-{-# OPTIONS -Wno-missing-export-lists #-}
+{-# OPTIONS -Wno-missing-export-lists -Wno-orphans #-}
 
 {-# OPTIONS -fmax-pmcheck-iterations=20000000 #-} -- pattern-match checking this module takes extra-long
 

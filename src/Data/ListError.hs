@@ -1,6 +1,6 @@
 {-# LANGUAGE InstanceSigs #-}
 
-{-# OPTIONS -Wno-missing-export-lists #-}
+{-# OPTIONS -Wno-missing-export-lists -Wno-redundant-constraints #-}
 
 module Data.ListError where
 

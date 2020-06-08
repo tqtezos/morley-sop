@@ -2,17 +2,19 @@
 
 module Data.Constraint.HasDict1 where
 
-import Prelude (($))
+-- import Prelude (($))
 import Data.Either
+import Data.Maybe
 import Data.List.NonEmpty (NonEmpty(..))
 
 import Data.Constraint
 import Data.Singletons
 import Data.Singletons.TypeLits (Sing(..), Symbol)
-import Data.Singletons.Prelude.List (Sing(..))
+-- import Data.Singletons.Prelude.List (Sing(..))
 import Data.Singletons.Prelude.List.NonEmpty (Sing(..))
-import Data.Singletons.Prelude.Tuple
+-- import Data.Singletons.Prelude.Tuple ()
 import Data.Singletons.Prelude.Either
+import Data.Singletons.Prelude.Maybe
 
 import Data.Singletons.TH.Cases
 import Language.Haskell.TH.Syntax
@@ -42,4 +44,7 @@ instance HasDict1 Symbol where
 
 instance (HasDict1 a, HasDict1 b) => HasDict1 (Either a b) where
   evidence1 = $(sCasesFold [| withDict1 |] [| Dict |] ''Either)
+
+instance HasDict1 a => HasDict1 (Maybe a) where
+  evidence1 = $(sCasesFold [| withDict1 |] [| Dict |] ''Maybe)
 

@@ -17,7 +17,6 @@ import Data.Singletons.Prelude
 import Data.Singletons.TH
 
 import Data.Constraint.HasDict1
-import Data.Singletons.Prelude.Monad.State
 
 
 -- | A generalization of `Notes` that's more amenable to `Sing`, `SingKind`

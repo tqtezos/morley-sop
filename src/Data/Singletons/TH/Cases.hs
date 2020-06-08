@@ -168,8 +168,10 @@ mk_name_d :: String -> String -> Name
 mk_name_d = mkNameG_d singPkg
 
 -- | `SCons`
+sconsName :: Name
 sconsName = mk_name_d "Data.Singletons.Prelude.Instances" "SCons"
 -- | `SNil`
+snilName :: Name
 snilName = mk_name_d "Data.Singletons.Prelude.Instances" "SNil"
 
 -- | Tuple singleton `Name`'s

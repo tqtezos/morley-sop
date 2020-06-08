@@ -13,17 +13,14 @@ import Text.Show
 
 import Data.Singletons
 import Data.Singletons.Prelude
-import Data.Singletons.Prelude.Bool
-import Data.Singletons.Prelude.IsString
 import Data.Singletons.TH
 
 import Michelson.Typed.T (CT(..))
 import Michelson.Typed.T.Alg
 import Data.Constraint.HasDict1
-import Data.Singletons.Prelude.Monad.State
 
 import Michelson.Typed.Annotation.Sing (Annotated)
-import Michelson.Typed.Annotation.Sing.Notes
+import Michelson.Typed.Annotation.Sing.Notes ()
 import Michelson.Typed.Annotation.Sing.Opq
 import qualified Michelson.Typed.Annotation.Sing as Michelson
 
@@ -90,67 +87,6 @@ instance SingKind a => SingKind (AnnotatedAlg a t) where
 
 instance HasDict1 a => HasDict1 (AnnotatedAlg a t) where
   evidence1 = $(gen_evidence1 ''AnnotatedAlg)
-
-
-$(singletonsOnly [d|
-
-  -- -- `TOpq` always has a `TypeAnn`
-  -- tOpqTypeAnn :: forall a t. AnnotatedOpq a t -> a
-  -- tOpqTypeAnn (ATc ta) = ta
-  -- tOpqTypeAnn (ATKey ta) = ta
-  -- tOpqTypeAnn (ATUnit ta) = ta
-  -- tOpqTypeAnn (ATSignature ta) = ta
-  -- tOpqTypeAnn (ATChainId ta) = ta
-  -- tOpqTypeAnn (ATOption ta _) = ta
-  -- tOpqTypeAnn (ATList ta _) = ta
-  -- tOpqTypeAnn (ATSet ta _) = ta
-  -- tOpqTypeAnn (ATOperation ta) = ta
-  -- tOpqTypeAnn (ATContract ta _) = ta
-  -- tOpqTypeAnn (ATLambda ta _ _) = ta
-  -- tOpqTypeAnn (ATMap ta _ _) = ta
-  -- tOpqTypeAnn (ATBigMap ta _ _) = ta
-
-  -- -- `TOpq` always has a `TypeAnn`: set it
-  -- setTypeAnn :: forall a t. a -> AnnotatedOpq a t -> AnnotatedOpq a t
-  -- setTypeAnn as (ATc _ta) = ATc as
-  -- setTypeAnn as (ATKey _ta) = ATKey as
-  -- setTypeAnn as (ATUnit _ta) = ATUnit as
-  -- setTypeAnn as (ATSignature _ta) = ATSignature as
-  -- setTypeAnn as (ATChainId _ta) = ATChainId as
-  -- setTypeAnn as (ATOption _ta xs) = ATOption as xs
-  -- setTypeAnn as (ATList _ta xs) = ATList as xs
-  -- setTypeAnn as (ATSet _ta xs) = ATSet as xs
-  -- setTypeAnn as (ATOperation _ta) = ATOperation as
-  -- setTypeAnn as (ATContract _ta xs) = ATContract as xs
-  -- setTypeAnn as (ATLambda _ta xs ys) = ATLambda as xs ys
-  -- setTypeAnn as (ATMap _ta xs ys) = ATMap as xs ys
-  -- setTypeAnn as (ATBigMap _ta xs ys) = ATBigMap as xs ys
-
-  -- propagateTypeAnn ::
-  --      forall a t. (Eq a, IsString a)
-  --   => a
-  --   -> AnnotatedAlg a t
-  --   -> AnnotatedAlg a t
-  -- propagateTypeAnn _as (ATPair ta tb tc xs ys) =
-  --   -- bool_
-  --   --   (fieldToTypeAnn (ATPair as tb tc xs ys))
-  --     (fieldToTypeAnn (ATPair ta tb tc xs ys))
-  --     -- (as == "")
-  -- propagateTypeAnn _as (ATOr ta tb tc xs ys) =
-  --      fieldToTypeAnn (ATOr ta tb tc xs ys)
-  -- propagateTypeAnn as (ATOpq xs) =
-  --   -- bool_
-  --   (ATOpq (setTypeAnn as xs))
-  --   -- (ATOpq xs)
-  --   -- (as == "")
-
-  -- fieldToTypeAnn :: forall a t. (Eq a, IsString a) => AnnotatedAlg a t -> AnnotatedAlg a t
-  -- fieldToTypeAnn (ATPair ta tb tc xs ys) = ATPair ta tb tc (propagateTypeAnn tb xs) (propagateTypeAnn tc ys)
-  -- fieldToTypeAnn (ATOr ta tb tc xs ys) = ATOr ta tb tc (propagateTypeAnn tb xs) (propagateTypeAnn tc ys) -- (fieldToTypeAnn xs) (fieldToTypeAnn ys)
-  -- fieldToTypeAnn (ATOpq xs) = ATOpq xs
-
-  |])
-
 
 
 type ExampleTAlg

@@ -17,7 +17,6 @@ import Data.Singletons.TH
 
 import Michelson.Typed.T.Alg
 import Data.Constraint.HasDict1
-import Data.Singletons.Prelude.Monad.State
 
 import Michelson.Typed.Annotation.Sing (Annotated, TraverseAnnotatedSym0, traverseAnnotated, sTraverseAnnotated)
 

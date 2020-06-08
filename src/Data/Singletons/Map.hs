@@ -1,12 +1,10 @@
 {-# LANGUAGE InstanceSigs #-}
 
-{-# OPTIONS -Wno-missing-export-lists #-}
+{-# OPTIONS -Wno-missing-export-lists -Wno-unused-type-patterns #-}
 
 module Data.Singletons.Map where
 
 import Prelude
-import Data.List
-import Text.Show
 
 import Data.Singletons.TH
 import Data.Singletons.Prelude

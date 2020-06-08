@@ -7,6 +7,7 @@ module Michelson.Typed.EntryPoints.Sing.Alg.Lens where
 
 import Prelude hiding (unwords, unlines, show)
 import GHC.Generics ((:.:)(..))
+import Data.Functor.Classes
 
 import Control.AltError
 import Data.AltError
@@ -31,6 +32,9 @@ import Data.Singletons.Prelude.Maybe
 import Data.Singletons.Prelude.Show
 import Data.Singletons.Prelude.Tuple
 import qualified Data.Text as T
+
+trace4 :: String -> a -> a
+trace4 = flip const -- trace . fromString -- flip const
 
 -- | `unwrapSing` then `fromSing`, with `Text` to `String` conversion
 fromUnwrapSing :: forall (x :: [Symbol]). WrappedSing x -> [String]
@@ -132,7 +136,7 @@ lensRunAltEAppendErrM ta tb sxs sys fx fy fs xss =
           )
           xs
 
-lensEpFieldTResolveOr :: forall f ta tb aa ab (as :: SymAnn ta) (bs :: SymAnn tb) epPath fieldName fieldAnn. AltError [String] f
+lensEpFieldTResolveOr :: forall f ta tb aa ab (as :: SymAnn ta) (bs :: SymAnn tb) epPath fieldName fieldAnn. (Show1 f, AltError [String] f)
   => Sing ta
   -> Sing tb
   -> Sing aa
@@ -184,7 +188,7 @@ lensEpFieldTResolveOr ta tb saa sab sas sbs sepPath@SHere sfieldName sfieldAnn f
   liftM2 (,) (flip altFailValueAlgT ta) (flip altFailValueAlgT tb) . fromUnwrapSing . unRunAltExcept <$>
   (fs . RunAltExcept . WrapSing . flip SCons SNil $ sEpFieldRecResolveOrError saa sab sas sbs sepPath sfieldName sfieldAnn)
 
-lensEpFieldTResolvePair :: forall f ta tb aa ab (as :: SymAnn ta) (bs :: SymAnn tb) epPath fieldName fieldAnn. AltError [String] f
+lensEpFieldTResolvePair :: forall f ta tb aa ab (as :: SymAnn ta) (bs :: SymAnn tb) epPath fieldName fieldAnn. (Show1 f, AltError [String] f)
   => Sing ta
   -> Sing tb
   -> Sing aa
@@ -214,7 +218,7 @@ lensEpFieldTResolvePair sta stb _saa _sab sas sbs sepPath@SHere sfieldName sfiel
   liftM2 (,) (flip altFailValueAlgT sta) (flip altFailValueAlgT stb) . fromUnwrapSing . unRunAltExcept <$>
   (fs . RunAltExcept . WrapSing . flip SCons SNil $ sEpFieldRecResolvePairError sas sbs sepPath sfieldName sfieldAnn)
 
-lensEpFieldT' :: forall f t (ann :: SymAnn t) epPath fieldName (fieldAnn :: Maybe Symbol). AltError [String] f
+lensEpFieldT' :: forall f t (ann :: SymAnn t) epPath fieldName (fieldAnn :: Maybe Symbol). (Show1 f, AltError [String] f)
   => Sing t
   -> Sing ann
   -> Sing epPath
@@ -226,13 +230,14 @@ lensEpFieldT' (STOr ta tb) (SATOr _ aa ab as bs) epPath fieldName fieldAnn fs (V
 lensEpFieldT' (STPair ta tb) (SATPair _ aa ab as bs) epPath fieldName fieldAnn fs (VTPair xss) = VTPair <$>
   lensEpFieldTResolvePair @f ta tb aa ab as bs epPath fieldName fieldAnn fs xss
 lensEpFieldT' (STOpq t1) (SATOpq _ta) epPath tb fieldAnn fs (VTOpq xs) =
-  VTOpq <$>
+  VTOpq . (<||>) xs <$>
   (**>>)
   (sBool_ (sAltFail (sEpFieldRecAssertHereError t1 epPath fieldAnn `SCons` SNil)) (sPure STuple0) (epPath %== SHere))
   (sEpFieldRecT tb t1 fieldAnn)
-  (case tb %== sFromMaybe (sing @"") fieldAnn of
+  (case tb %== fieldAnn of
      SFalse -> \f _ys ->
-       fmap (altErr . fmap T.unpack . fromSing . unwrapSing . unRunAltThrow) . f . RunAltThrow . WrapSing $
+       fmap (altErr . fmap T.unpack . fromSing . unwrapSing . unRunAltThrow) .
+       f . RunAltThrow . WrapSing $
        sEpFieldTFieldError tb fieldAnn `SCons` SNil
      STrue -> \f ->
        fmap (unComp1 . unRunPureAltE) . f . RunPureAltE . Comp1
@@ -240,8 +245,7 @@ lensEpFieldT' (STOpq t1) (SATOpq _ta) epPath tb fieldAnn fs (VTOpq xs) =
   fs
   xs
 
-
-lensEpFieldT :: forall f t (ann :: SymAnn t) epPath fieldName. AltError [String] f
+lensEpFieldT :: forall f t (ann :: SymAnn t) epPath fieldName. (Show1 f, AltError [String] f)
   => Sing t
   -> Sing ann
   -> Sing epPath
@@ -249,23 +253,4 @@ lensEpFieldT :: forall f t (ann :: SymAnn t) epPath fieldName. AltError [String]
   -> Lens' (ValueAlgT f t) (RunSingValueOpq f (EpFieldT t ann epPath fieldName))
 lensEpFieldT t ann epPath fieldName =
   lensEpFieldT' t ann epPath fieldName SNothing
-
--- lensEpFieldT (STOr ta tb) (SATOr _ aa ab as bs) epPath fieldName fs (VTOr xss) = VTOr <$>
---   lensEpFieldTResolveOr @f ta tb aa ab as bs epPath fieldName fs xss
--- lensEpFieldT (STPair ta tb) (SATPair _ _ _ as bs) epPath fieldName fs (VTPair xss) = VTPair <$>
---   lensEpFieldTResolvePair @f ta tb as bs epPath fieldName fs xss
--- lensEpFieldT (STOpq t1) (SATOpq ta) epPath tb fs (VTOpq xs) =
---   VTOpq <$>
---   (**>>)
---   (sBool_ (sAltFail (sEpFieldRecAssertHereError t1 epPath `SCons` SNil)) (sPure STuple0) (epPath %== SHere))
---   (sEpFieldRecT tb t1 (sTOpqTypeAnn ta))
---   (case tb %== sTOpqTypeAnn ta of
---      SFalse -> \f _ys ->
---        fmap (altErr . fmap T.unpack . fromSing . unwrapSing . unRunAltThrow) . f . RunAltThrow . WrapSing $
---        sEpFieldTFieldError tb (sTOpqTypeAnn ta) `SCons` SNil
---      STrue -> \f ->
---        fmap (unComp1 . unRunPureAltE) . f . RunPureAltE . Comp1
---   )
---   fs
---   xs
 

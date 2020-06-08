@@ -52,8 +52,8 @@ npWrappedSing sxs =
     wrapSing :: forall x. SingI x => WrappedSing x
     wrapSing = WrapSing sing
 
-data EpField (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol) where
-  EpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). ()
+data EpField (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Maybe Symbol) where
+  EpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Maybe Symbol). ()
     => Sing fieldName
     -> RunSingValueOpq f (EpFieldT t ann epPath fieldName)
     -> EpField f t ann epPath fieldName
@@ -63,7 +63,7 @@ instance (forall t'. SingI t' => Show (f (ValueOpq t')), SingI t, SingI ann, Sin
     withDict1 (sEpFieldT @ErrM (sing @t) (sing @ann) (sing @epPath) sfieldName) $
     showsBinaryWith showsPrec showsPrec "EpField" d (fromSing sfieldName) xs
 
-unwrapEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). Applicative f
+unwrapEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Maybe Symbol). Applicative f
   => EpField f t ann epPath fieldName
   -> f (EpField I t ann epPath fieldName)
 unwrapEpField (EpField sfieldName xs) =
@@ -73,7 +73,7 @@ unwrapEpField (EpField sfieldName xs) =
     RunAltExcept ys -> pure $ RunAltExcept ys
     RunPureAltE (Comp1 ys) -> RunPureAltE . Comp1 . I <$> ys
 
-wrapEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). (Functor f, SingI epPath, SingI fieldName)
+wrapEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Maybe Symbol). (Functor f, SingI epPath, SingI fieldName)
   => Sing t
   -> Sing ann
   -> f (EpField I t ann epPath fieldName)
@@ -88,7 +88,7 @@ wrapEpField st sann xs =
          EpField _sfieldName xss -> SOP.unI $ unComp1 $ unRunPureAltE xss
       ) <$> xs
 
-emptyEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). AltError [String] f
+emptyEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Maybe Symbol). AltError [String] f
   => Sing t
   -> Sing ann
   -> Sing epPath
@@ -102,7 +102,7 @@ emptyEpField st sann sepPath sfieldName =
     SPureAltE sResult -> RunPureAltE $ Comp1 . altErr . ("emptyEpField SPureAltE: " :) . (: []) . show $ fromSing sResult
 
 
-transEpField :: forall (f :: Type -> Type) (g :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol). ()
+transEpField :: forall (f :: Type -> Type) (g :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Maybe Symbol). ()
   => (forall t'. SingI t' => f (ValueOpq t') -> g (ValueOpq t'))
   -> Sing t
   -> Sing ann

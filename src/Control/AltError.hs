@@ -1,5 +1,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 
+{-# OPTIONS -Wno-missing-export-lists #-}
+
 module Control.AltError where
 
 import Control.Applicative

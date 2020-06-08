@@ -1,32 +1,22 @@
 {-# LANGUAGE InstanceSigs #-}
 
-{-# OPTIONS -Wno-missing-export-lists #-}
+{-# OPTIONS -Wno-missing-export-lists -Wno-unused-type-patterns #-}
 
 module Data.AltError where
 
 import Data.Bool
 import Control.Applicative
-import Control.Monad.Fail
 import Control.Monad
-import Data.Either
 import Data.Eq
-import Data.List
 import Data.Function
 import Data.Functor.Classes
-import Data.Functor
 import Data.String
 import Text.Show
 import Text.Read
-import Debug.Trace
-import Data.Bifunctor
-import Prelude ((==), otherwise, undefined, ($!))
-
 
 import Control.AltError
 import Data.Constraint.HasDict1
 
-import Data.Constraint
-import Data.Singletons
 import Data.Singletons.TypeLits
 import Data.Singletons.Prelude.Bool
 import Data.Singletons.Prelude.Show
