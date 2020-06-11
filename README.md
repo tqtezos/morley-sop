@@ -1,9 +1,59 @@
 # morley-sop (beta)
 
+## Introduction
+
+`morley-sop` provides a type of extended entrypoint (`EpPath`) that supports
+arbitrarily nested `or`'s and `pair`'s. This allows an extended entrypoint
+with a field reference to point to exactly one of the non-`or`/`pair`
+constituents of the type.
+
+This allows us to normalize arbitrary Michelson types:
+
+- The extended entrypoints themselves normalize the type up to distribution of `pair` over `or`
+- Collecting all of the extended entrypoints normalizes the type up to associativity of `or/`pair`
+- Sorting the resulting list of lists normalizes the type up to commutativity of `or/`pair`
+
+The resulting normalized type inherits the annotations of the original type
+and may be used as a sort of Michelson "first class record type".
+
+Known limitations:
+- The current unicification method is over-eager and the resulting annotations often have the `_[number]` suffix
+- The current method of pretty-printing `EpPath`'s is verbose
+- No Michelson code to convert between types is generated
+
+This library provides a CLI tool that allows specifying an extended entrypoint to
+craft a value of that type using human-readable arguments.
+
+Key modules:
+- `Michelson.Typed.T.Alg`: isomorphism between `T` and `TAlg`: a version of `T` where all but `or`/`pair` is opaque
+- `Michelson.Typed.EntryPoints.Sing.Alg.Paths`: functions to enumerate all `EpPath`'s and uniqify annotations so that all paths and fields will be unique
+- `Michelson.Typed.EntryPoints.Sing.Alg.Types`: functions to resolve individual fields of an extended entrypoint
+- `Michelson.Typed.EntryPoints.Sing.Alg.Lens`: a lens to access a field using an extended entrypoint
+
+
+## Building
+
+To build the executable, run `stack build`
+and then either run `stack install` to copy the executable to your `$PATH`
+or prefix the following commands with `stack exec --`,
+e.g. `stack exec -- morley-sop ..`
+
+Haskell [stack](https://docs.haskellstack.org/en/stable/README/) may be found
+[here](https://docs.haskellstack.org/en/stable/README/).
+
+### Documentation
+
+Haddock-generated documentation is available at [docs/index.html](docs/index.html).
+
+To rebuild the documentation, run: `stack haddock` and copy the generated `doc`
+directory to `docs`.
+
+## Examples
+
 Example commands:
 
 ```bash
-$ morley-sop "$(cat fa2ext_stub.tz | tr -d '\n')" --help 
+$ morley-sop "$(cat contracts/fa2ext_stub.tz | tr -d '\n')" --help
 
 Available commands:
 
@@ -62,7 +112,8 @@ Usage: morley-sop _1%_9%total_supply%(*) --callback_3 (contract (list (pair nat 
 ```
 
 ```bash
-$ morley-sop "$(cat fa2ext_stub.tz | tr -d '\n')" '_1%_9%_10%_11%single_transfer%(***)' --help 
+$ morley-sop "$(cat contracts/fa2ext_stub.tz | tr -d '\n')" \
+  '_1%_9%_10%_11%single_transfer%(***)' --help
 
 Usage: morley-sop _1%_9%_10%_11%single_transfer%(***) --amount_1 nat
                                                       --from_ address
@@ -74,7 +125,11 @@ Available options:
 ```
 
 ```bash
-$ stack build --fast && stack exec -- morley-sop "$(cat fa2ext_stub.tz | tr -d '\n')" '_1%_9%_10%_11%single_transfer%(***)' --amount_1 42 --from_ "\"$ALICE_ADDRESS\"" --to_ "\"$BOB_ADDRESS\"" --token_id_1 0
+$ stack build --fast && stack exec -- morley-sop \
+  "$(cat contracts/fa2ext_stub.tz | tr -d '\n')" \
+  '_1%_9%_10%_11%single_transfer%(***)' \
+  --amount_1 42 --from_ "\"$ALICE_ADDRESS\"" --to_ "\"$BOB_ADDRESS\"" \
+  --token_id_1 0
 
 Right (Right (Right (Left (Right (Pair "tz1R3vJ5TV8Y5pVj8dicBR23Zv8JArusDkYr" (Pair "tz1bDCu64RmcpWahdn9bWrDMi6cu7mXZynHm" (Pair 0 42)))))))
 ```

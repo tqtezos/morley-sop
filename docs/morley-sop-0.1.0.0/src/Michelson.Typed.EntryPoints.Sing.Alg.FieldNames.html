@@ -1,0 +1,95 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# OPTIONS -Wno-missing-export-lists #-}</span><span>
+</span><a name="line-2"></a><span>
+</span><a name="line-3"></a><span class="hs-comment">-- | This module is a port of Michelson.Typed.EntryPoints.Sing.Alg.Types,</span><span>
+</span><a name="line-4"></a><span class="hs-comment">-- where @ErrM@ is replaced with an accumulating @[]@</span><span>
+</span><a name="line-5"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Michelson.Typed.EntryPoints.Sing.Alg.FieldNames</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-6"></a><span>
+</span><a name="line-7"></a><span class="hs-comment">-- import Prelude hiding (unwords, show)</span><span>
+</span><a name="line-8"></a><span>
+</span><a name="line-9"></a><span class="hs-comment">-- import Control.AltError</span><span>
+</span><a name="line-10"></a><span>
+</span><a name="line-11"></a><span class="hs-comment">-- import Michelson.Typed.Annotation.Path</span><span>
+</span><a name="line-12"></a><span class="hs-comment">-- import Michelson.Typed.EntryPoints.Error</span><span>
+</span><a name="line-13"></a><span class="hs-comment">-- import Michelson.Typed.EntryPoints.Sing.Alg.Types</span><span>
+</span><a name="line-14"></a><span class="hs-comment">-- import Michelson.Typed.Annotation.Sing.Alg</span><span>
+</span><a name="line-15"></a><span class="hs-comment">-- import Michelson.Typed.T.Alg</span><span>
+</span><a name="line-16"></a><span>
+</span><a name="line-17"></a><span class="hs-comment">-- import Data.Singletons.TH</span><span>
+</span><a name="line-18"></a><span class="hs-comment">-- import Data.Singletons.TypeLits</span><span>
+</span><a name="line-19"></a><span class="hs-comment">-- import Data.Singletons.Prelude.Applicative</span><span>
+</span><a name="line-20"></a><span class="hs-comment">-- import Data.Singletons.Prelude.Bool</span><span>
+</span><a name="line-21"></a><span class="hs-comment">-- import Data.Singletons.Prelude.List</span><span>
+</span><a name="line-22"></a><span>
+</span><a name="line-23"></a><span class="hs-comment">-- tt = _</span><span>
+</span><a name="line-24"></a><span>
+</span><a name="line-25"></a><span class="hs-comment">-- $(singletonsOnly [d|</span><span>
+</span><a name="line-26"></a><span>
+</span><a name="line-27"></a><span class="hs-comment">--   -- epFieldNamesAssertHere :: EpPath -&gt; Symbol -&gt; [Symbol]</span><span>
+</span><a name="line-28"></a><span class="hs-comment">--   -- epFieldNamesAssertHere Here fieldName = [fieldName]</span><span>
+</span><a name="line-29"></a><span class="hs-comment">--   -- epFieldNamesAssertHere ((:*) _ _) _fieldName = []</span><span>
+</span><a name="line-30"></a><span class="hs-comment">--   -- epFieldNamesAssertHere ((:+) _ _) _fieldName = []</span><span>
+</span><a name="line-31"></a><span>
+</span><a name="line-32"></a><span class="hs-comment">--   -- epFieldNamesEntrypointEq :: forall t. SymAnn t -&gt; EpPath -&gt; Symbol -&gt; Symbol -&gt; Bool -&gt; [Symbol]</span><span>
+</span><a name="line-33"></a><span class="hs-comment">--   -- epFieldNamesEntrypointEq ann epPath _ _ True = epFieldNames ann epPath</span><span>
+</span><a name="line-34"></a><span class="hs-comment">--   -- epFieldNamesEntrypointEq _ann _epPath _entrypointNameA _entrypointNameB False = []</span><span>
+</span><a name="line-35"></a><span>
+</span><a name="line-36"></a><span class="hs-comment">--   -- epFieldNamesResolveOr :: forall ta tb. Symbol -&gt; Symbol -&gt; SymAnn ta -&gt; SymAnn tb -&gt; EpPath -&gt; [Symbol]</span><span>
+</span><a name="line-37"></a><span class="hs-comment">--   -- epFieldNamesResolveOr aa ab as bs ((:+) entrypointName epPath) =</span><span>
+</span><a name="line-38"></a><span class="hs-comment">--   --   epFieldNamesEntrypointEq as epPath aa entrypointName (aa == entrypointName) ++</span><span>
+</span><a name="line-39"></a><span class="hs-comment">--   --   epFieldNamesEntrypointEq bs epPath ab entrypointName (ab == entrypointName)</span><span>
+</span><a name="line-40"></a><span class="hs-comment">--   -- epFieldNamesResolveOr _aa _ab _as _bs ((:*) _ _) = []</span><span>
+</span><a name="line-41"></a><span class="hs-comment">--   -- epFieldNamesResolveOr _aa _ab _as _bs Here = []</span><span>
+</span><a name="line-42"></a><span>
+</span><a name="line-43"></a><span class="hs-comment">--   -- epFieldNamesResolvePair :: forall ta tb. SymAnn ta -&gt; SymAnn tb -&gt; EpPath -&gt; [Symbol]</span><span>
+</span><a name="line-44"></a><span class="hs-comment">--   -- epFieldNamesResolvePair as bs ((:*) epPathA epPathB) =</span><span>
+</span><a name="line-45"></a><span class="hs-comment">--   --   epFieldNames as epPathA ++</span><span>
+</span><a name="line-46"></a><span class="hs-comment">--   --   epFieldNames bs epPathB</span><span>
+</span><a name="line-47"></a><span class="hs-comment">--   -- epFieldNamesResolvePair _as _bs ((:+) _ _) = []</span><span>
+</span><a name="line-48"></a><span class="hs-comment">--   -- epFieldNamesResolvePair _as _bs Here = []</span><span>
+</span><a name="line-49"></a><span>
+</span><a name="line-50"></a><span class="hs-comment">--   -- -- Note that theres no @epFieldNamesFieldEq@:</span><span>
+</span><a name="line-51"></a><span class="hs-comment">--   -- -- at that point in the resolution, theres no fieldname to check against</span><span>
+</span><a name="line-52"></a><span class="hs-comment">--   -- -- so we just include it in the list of results.</span><span>
+</span><a name="line-53"></a><span class="hs-comment">--   -- epFieldNames :: forall t. SymAnn t -&gt; EpPath -&gt; [Symbol]</span><span>
+</span><a name="line-54"></a><span class="hs-comment">--   -- epFieldNames (ATOr _ aa ab as bs) epPath = epFieldNamesResolveOr aa ab as bs epPath</span><span>
+</span><a name="line-55"></a><span class="hs-comment">--   -- epFieldNames (ATPair _ _ _ as bs) epPath = epFieldNamesResolvePair as bs epPath</span><span>
+</span><a name="line-56"></a><span class="hs-comment">--   -- epFieldNames (ATOpq ta) epPath = epFieldNamesAssertHere epPath (tOpqTypeAnn ta)</span><span>
+</span><a name="line-57"></a><span>
+</span><a name="line-58"></a><span class="hs-comment">--   epFieldNamesResolveOr :: forall f ta tb. AltError [Symbol] f =&gt; (TAlg, TAlg) -&gt; Symbol -&gt; Symbol -&gt; SymAnn ta -&gt; SymAnn tb -&gt; EpPath -&gt; f Symbol</span><span>
+</span><a name="line-59"></a><span class="hs-comment">--   epFieldNamesResolveOr (ta, tb) aa ab as bs ((:+) entrypointName epPath) =</span><span>
+</span><a name="line-60"></a><span class="hs-comment">--     bool_</span><span>
+</span><a name="line-61"></a><span class="hs-comment">--       (altErr [epFieldTEntrypointError as epPath &quot;[epFieldNamesResolveOr]&quot; aa entrypointName])</span><span>
+</span><a name="line-62"></a><span class="hs-comment">--       (epFieldNames ta as epPath)</span><span>
+</span><a name="line-63"></a><span class="hs-comment">--       (aa == entrypointName) &lt;||&gt;</span><span>
+</span><a name="line-64"></a><span class="hs-comment">--     bool_</span><span>
+</span><a name="line-65"></a><span class="hs-comment">--       (altErr [epFieldTEntrypointError bs epPath &quot;[epFieldNamesResolveOr]&quot; ab entrypointName])</span><span>
+</span><a name="line-66"></a><span class="hs-comment">--       (epFieldNames tb bs epPath)</span><span>
+</span><a name="line-67"></a><span class="hs-comment">--       (ab == entrypointName)</span><span>
+</span><a name="line-68"></a><span class="hs-comment">--   epFieldNamesResolveOr _ aa ab as bs ((:*) xs ys) =</span><span>
+</span><a name="line-69"></a><span class="hs-comment">--     altFail [epFieldTResolveOrError aa ab as bs ((:*) xs ys) &quot;[epFieldNamesResolveOr]&quot;]</span><span>
+</span><a name="line-70"></a><span class="hs-comment">--   epFieldNamesResolveOr _ aa ab as bs Here =</span><span>
+</span><a name="line-71"></a><span class="hs-comment">--     altFail [epFieldTResolveOrError aa ab as bs Here &quot;[epFieldNamesResolveOr]&quot;]</span><span>
+</span><a name="line-72"></a><span>
+</span><a name="line-73"></a><span class="hs-comment">--   epFieldNamesResolvePair :: forall f ta tb. AltError [Symbol] f =&gt; TAlg -&gt; TAlg -&gt; SymAnn ta -&gt; SymAnn tb -&gt; EpPath -&gt; f Symbol</span><span>
+</span><a name="line-74"></a><span class="hs-comment">--   epFieldNamesResolvePair ta tb as bs ((:*) epPathA epPathB) =</span><span>
+</span><a name="line-75"></a><span class="hs-comment">--     epFieldNames ta as epPathA &lt;||&gt;</span><span>
+</span><a name="line-76"></a><span class="hs-comment">--     epFieldNames tb bs epPathB</span><span>
+</span><a name="line-77"></a><span class="hs-comment">--   epFieldNamesResolvePair _ _ as bs ((:+) xs ys) =</span><span>
+</span><a name="line-78"></a><span class="hs-comment">--     altFail [epFieldTResolvePairError as bs ((:+) xs ys) &quot;[epFieldNamesResolvePair]&quot;]</span><span>
+</span><a name="line-79"></a><span class="hs-comment">--   epFieldNamesResolvePair _ _ as bs Here =</span><span>
+</span><a name="line-80"></a><span class="hs-comment">--     altFail [epFieldTResolvePairError as bs Here &quot;[epFieldNamesResolvePair]&quot;]</span><span>
+</span><a name="line-81"></a><span>
+</span><a name="line-82"></a><span class="hs-comment">--   epFieldNames :: forall f t. AltError [Symbol] f =&gt; TAlg -&gt; SymAnn t -&gt; EpPath -&gt; f Symbol</span><span>
+</span><a name="line-83"></a><span class="hs-comment">--   epFieldNames (TOr ta tb) (ATOr _ aa ab as bs) epPath = epFieldNamesResolveOr (ta, tb) aa ab as bs epPath</span><span>
+</span><a name="line-84"></a><span class="hs-comment">--   epFieldNames (TPair ta tb) (ATPair _ _ _ as bs) epPath = epFieldNamesResolvePair ta tb as bs epPath</span><span>
+</span><a name="line-85"></a><span class="hs-comment">--   epFieldNames (TOpq t1) (ATOpq ta) epPath =</span><span>
+</span><a name="line-86"></a><span class="hs-comment">--     bool_ (altFail [epFieldTAssertHereError t1 epPath]) (pure ()) (epPath == Here) *&gt;</span><span>
+</span><a name="line-87"></a><span class="hs-comment">--     pure (tOpqTypeAnn ta)</span><span>
+</span><a name="line-88"></a><span class="hs-comment">--     -- bool_</span><span>
+</span><a name="line-89"></a><span class="hs-comment">--     --   -- (altErr [epFieldTFieldError (tOpqTypeAnn ta) tb])</span><span>
+</span><a name="line-90"></a><span class="hs-comment">--     --   (pure (tOpqTypeAnn ta))</span><span>
+</span><a name="line-91"></a><span class="hs-comment">--     --   -- (tOpqTypeAnn ta == tb)</span><span>
+</span><a name="line-92"></a><span>
+</span><a name="line-93"></a><span class="hs-comment">--   |])</span><span>
+</span><a name="line-94"></a><span>
+</span><a name="line-95"></a></pre></body></html>

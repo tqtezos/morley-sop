@@ -1,5 +1,7 @@
 {-# LANGUAGE NoRebindableSyntax #-}
 
+{-# OPTIONS -Wno-missing-export-lists #-}
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Singletons.TH.Cases

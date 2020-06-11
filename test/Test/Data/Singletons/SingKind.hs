@@ -1,9 +1,6 @@
+{-# OPTIONS -Wno-missing-export-lists #-}
 
 module Test.Data.Singletons.SingKind where
-
-import Data.Eq
-import Data.Function
-import Text.Show
 
 import Test.Iso
 

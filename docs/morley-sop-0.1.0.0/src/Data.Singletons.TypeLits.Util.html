@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# OPTIONS -Wno-missing-export-lists #-}</span><span>
+</span><a name="line-2"></a><span>
+</span><a name="line-3"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Singletons.TypeLits.Util</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-4"></a><span>
+</span><a name="line-5"></a><span class="hs-comment">-- import GHC.TypeLits</span><span>
+</span><a name="line-6"></a><span>
+</span><a name="line-7"></a><span class="hs-comment">-- import Lorentz</span><span>
+</span><a name="line-8"></a><span class="hs-comment">-- import Michelson.Typed.Annotation</span><span>
+</span><a name="line-9"></a><span class="hs-comment">-- import Michelson.Untyped.Annotation</span><span>
+</span><a name="line-10"></a><span class="hs-comment">-- import Michelson.Typed.T</span><span>
+</span><a name="line-11"></a><span class="hs-comment">-- import Lorentz.EntryPoints.Core</span><span>
+</span><a name="line-12"></a><span>
+</span><a name="line-13"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Singletons</span><span>
+</span><a name="line-14"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Singletons.TypeLits</span><span>
+</span><a name="line-15"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Constraint</span><span>
+</span><a name="line-16"></a><span class="hs-comment">-- import Fcf (Exp)</span><span>
+</span><a name="line-17"></a><span>
+</span><a name="line-18"></a><span>
+</span><a name="line-19"></a><span class="hs-comment">-- | A proof that `Sing` implies `SingI` for `Symbol`</span><span>
+</span><a name="line-20"></a><span class="hs-identifier">singISymbol</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span class="hs-special">(</span><a name="local-6989586621679285827"><a href="#local-6989586621679285827"><span class="hs-identifier">x</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Symbol</span><span class="hs-special">)</span><span class="hs-operator">.</span><span> </span><span class="hs-identifier hs-type">Sing</span><span> </span><a href="#local-6989586621679285827"><span class="hs-identifier hs-type">x</span></a><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Dict</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">SingI</span><span> </span><a href="#local-6989586621679285827"><span class="hs-identifier hs-type">x</span></a><span class="hs-special">)</span><span>
+</span><a name="line-21"></a><a name="singISymbol"><a href="Data.Singletons.TypeLits.Util.html#singISymbol"><span class="hs-identifier">singISymbol</span></a></a><span> </span><span class="hs-identifier hs-var">SSym</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Dict</span><span>
+</span><a name="line-22"></a></pre></body></html>

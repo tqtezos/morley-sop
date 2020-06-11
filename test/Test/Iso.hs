@@ -1,11 +1,6 @@
+{-# OPTIONS -Wno-missing-export-lists #-}
 
 module Test.Iso where
-
-import Data.Eq
-import Data.Function
-import Data.String
-import Control.Monad
-import Text.Show
 
 import Test.QuickCheck
 

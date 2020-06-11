@@ -64,9 +64,9 @@ import qualified Data.Text.Lazy.IO as TL
 -- import Michelson.Typed.Value.Arbitrary
 
 
-traceShow' :: Show a => a -> b -> b
+-- traceShow' :: Show a => a -> b -> b
+traceShow' :: a -> b -> b
 traceShow' = flip const -- trace . fromString . ("\n" <>) . show
--- flip const
 
 parseNS :: forall a m (f :: a -> Type) (xs :: [a]). (HasDict1 a, Alternative m, SingI xs)
   => (String -> m Void)
@@ -102,7 +102,7 @@ parseValueOpq label =
 -- | Unnamed fields are marked with @%unnamed@
 --
 -- (The @%@ symbol is not allowed in Michelson annotations.)
-parseEpField :: forall f t ann epPath fieldName. (Applicative f, (forall (x :: TOpq). SingI x => (Show (f (ValueOpq x)))), SingI t, SingI ann, SingI epPath, SingI fieldName)
+parseEpField :: forall f t ann epPath fieldName. (Applicative f, SingI t, SingI ann, SingI epPath, SingI fieldName) -- (forall (x :: TOpq). SingI x => (Show (f (ValueOpq x)))),
   => Parser (EpField f t ann epPath fieldName)
 parseEpField =
   withDict1 (sEpFieldT @ErrM (sing @t) (sing @ann) (sing @epPath) (sing @fieldName)) $
@@ -112,7 +112,7 @@ parseEpField =
     (Comp1 . pure <$> parseValueOpq (fromMaybe "%unnamed" $ T.unpack <$> fromSing (sing @fieldName)))
     sing
 
-parseEpFields :: forall f t ann epPath. (Applicative f, (forall (x :: TOpq). SingI x => (Show (f (ValueOpq x)))), SingI t, SingI ann, SingI epPath)
+parseEpFields :: forall f t ann epPath. (Applicative f, SingI t, SingI ann, SingI epPath) -- (forall (x :: TOpq). SingI x => (Show (f (ValueOpq x)))),
   => Mod CommandFields (EpFields f t ann epPath)
 parseEpFields =
   command (show $ fromSing (sing @epPath)) . flip info mempty $
@@ -199,14 +199,14 @@ parsePrintValueFromContractSource forceSingleLine contractSrc =
   case parseSomeContractRaw (Left . unlines) contractSrc of
     Left err -> error . fromString $ unlines ["parsePrintValueFromContractSource: error parsing/typechecking contract:", err]
     Right (TypeCheck.SomeContract (FullContract _ (ParamNotesUnsafe paramNotes' :: ParamNotes cp) _)) ->  -- caseAltE
-      (flip const) (fromString . ("\nparsed type:\n" <>) . show . fromSing $ sing @cp) $
-      (flip const) (fromString . ("\nparsed annotation:\n" <>) . show $ paramNotes') $
+      -- (flip const) (fromString . ("\nparsed type:\n" <>) . show . fromSing $ sing @cp) $
+      -- (flip const) (fromString . ("\nparsed annotation:\n" <>) . show $ paramNotes') $
       case toSing (Michelson.annotatedFromNotes paramNotes') of
         SomeSing (sann :: Sing ann) ->
           let sann' =  (sUniqifyEpPathsSimpler (singToAnnotatedAlg sann)) in
             withDict1 (singToTAlg (sing @cp)) $
-            (flip const) (fromString . ("\npre-uniqified annotation:\n" <>) . show $ fromSing (singToAnnotatedAlg sann)) $
-            (flip const) (fromString . ("\nuniqified annotation:\n" <>) . show $ fromSing (sUniqifyEpPathsSimpler (singToAnnotatedAlg sann))) $
+            -- (flip const) (fromString . ("\npre-uniqified annotation:\n" <>) . show $ fromSing (singToAnnotatedAlg sann)) $
+            -- (flip const) (fromString . ("\nuniqified annotation:\n" <>) . show $ fromSing (sUniqifyEpPathsSimpler (singToAnnotatedAlg sann))) $
             -- traceShow ("original" :: String, fromSing (singToAnnotatedAlg sann)) $
             -- -- traceShow' ("next" :: String, fromSing (sUniqifyEpPathsSimpler (singToAnnotatedAlg sann))) $
             -- traceShow ("next_uniquified" :: String, fromSing sann') $

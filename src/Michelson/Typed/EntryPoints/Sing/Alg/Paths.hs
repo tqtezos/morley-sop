@@ -1,4 +1,4 @@
-{-# OPTIONS -Wno-missing-export-lists #-}
+{-# OPTIONS -Wno-missing-export-lists -Wno-unused-type-patterns #-}
 
 -- TODO:
 -- - this is a port from module Michelson.Typed.EntryPoints.Sing.Alg.FieldNames where

@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- {-# LANGUAGE QuantifiedConstraints #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# OPTIONS -Wno-missing-export-lists #-}</span><span>
+</span><a name="line-3"></a><span>
+</span><a name="line-4"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Either.Run</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-5"></a><span>
+</span><a name="line-6"></a><span class="hs-comment">-- import Data.Kind</span><span>
+</span><a name="line-7"></a><span class="hs-comment">-- import Data.Functor.Classes</span><span>
+</span><a name="line-8"></a><span class="hs-comment">-- import Data.Either</span><span>
+</span><a name="line-9"></a><span class="hs-comment">-- import Text.Show</span><span>
+</span><a name="line-10"></a><span class="hs-comment">-- import Data.String</span><span>
+</span><a name="line-11"></a><span class="hs-comment">-- import Data.Function</span><span>
+</span><a name="line-12"></a><span>
+</span><a name="line-13"></a><span class="hs-comment">-- import Data.Constraint.HasDict1</span><span>
+</span><a name="line-14"></a><span>
+</span><a name="line-15"></a><span class="hs-comment">-- import Data.Singletons</span><span>
+</span><a name="line-16"></a><span class="hs-comment">-- import Data.Singletons.Prelude.Either</span><span>
+</span><a name="line-17"></a><span>
+</span><a name="line-18"></a><span class="hs-comment">-- -- | Given handlers for `Left` and `Right`, handle `Either`</span><span>
+</span><a name="line-19"></a><span class="hs-comment">-- data RunEither (f :: a -&gt; Type) (g :: b -&gt; Type) (xs :: Either a b) where</span><span>
+</span><a name="line-20"></a><span class="hs-comment">--   RunLeft :: f x -&gt; RunEither f g ('Left x)</span><span>
+</span><a name="line-21"></a><span class="hs-comment">--   RunRight :: g y -&gt; RunEither f g ('Right y)</span><span>
+</span><a name="line-22"></a><span>
+</span><a name="line-23"></a><span class="hs-comment">-- instance forall a b (f :: a -&gt; Type) (g :: b -&gt; Type) (xs :: Either a b). (HasDict1 a, HasDict1 b, forall (x :: a). SingI x =&gt; Show (f x), forall (y :: b). SingI y =&gt; Show (g y), SingI xs) =&gt; Show (RunEither f g xs) where</span><span>
+</span><a name="line-24"></a><span class="hs-comment">--   showsPrec d (RunLeft xs) =</span><span>
+</span><a name="line-25"></a><span class="hs-comment">--     case sing @xs of</span><span>
+</span><a name="line-26"></a><span class="hs-comment">--       SLeft sxs -&gt; withDict1 sxs $ showsUnaryWith showsPrec &quot;RunLeft&quot; d xs</span><span>
+</span><a name="line-27"></a><span class="hs-comment">--   showsPrec d (RunRight xs) =</span><span>
+</span><a name="line-28"></a><span class="hs-comment">--     case sing @xs of</span><span>
+</span><a name="line-29"></a><span class="hs-comment">--       SRight sxs -&gt; withDict1 sxs $ showsUnaryWith showsPrec &quot;RunRight&quot; d xs</span><span>
+</span><a name="line-30"></a><span>
+</span><a name="line-31"></a><span class="hs-comment">-- -- | Unwrap `RunLeft`</span><span>
+</span><a name="line-32"></a><span class="hs-comment">-- unRunLeft :: forall a b (f :: a -&gt; Type) (g :: b -&gt; Type) (x :: a). ()</span><span>
+</span><a name="line-33"></a><span class="hs-comment">--   =&gt; RunEither f g ('Left x)</span><span>
+</span><a name="line-34"></a><span class="hs-comment">--   -&gt; f x</span><span>
+</span><a name="line-35"></a><span class="hs-comment">-- unRunLeft (RunLeft xs) = xs</span><span>
+</span><a name="line-36"></a><span>
+</span><a name="line-37"></a><span class="hs-comment">-- -- | Unwrap `RunRight`</span><span>
+</span><a name="line-38"></a><span class="hs-comment">-- unRunRight :: forall a b (f :: a -&gt; Type) (g :: b -&gt; Type) (y :: b). ()</span><span>
+</span><a name="line-39"></a><span class="hs-comment">--   =&gt; RunEither f g ('Right y)</span><span>
+</span><a name="line-40"></a><span class="hs-comment">--   -&gt; g y</span><span>
+</span><a name="line-41"></a><span class="hs-comment">-- unRunRight (RunRight xs) = xs</span><span>
+</span><a name="line-42"></a><span>
+</span><a name="line-43"></a></pre></body></html>

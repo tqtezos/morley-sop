@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span>
+</span><a name="line-2"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.BTree</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-3"></a><span>
+</span><a name="line-4"></a><span class="hs-comment">-- import Data.Kind</span><span>
+</span><a name="line-5"></a><span class="hs-comment">-- -- import GHC.TypeLits</span><span>
+</span><a name="line-6"></a><span>
+</span><a name="line-7"></a><span class="hs-comment">-- import Data.Singletons</span><span>
+</span><a name="line-8"></a><span class="hs-comment">-- import Data.Singletons.TypeLits</span><span>
+</span><a name="line-9"></a><span class="hs-comment">-- import Data.Constraint</span><span>
+</span><a name="line-10"></a><span>
+</span><a name="line-11"></a><span>
+</span><a name="line-12"></a><span class="hs-comment">-- data BTree a =</span><span>
+</span><a name="line-13"></a><span class="hs-comment">--   (:*) :: BTree a -&gt; BTree a -&gt; BTree a</span><span>
+</span><a name="line-14"></a><span class="hs-comment">--   Leaf :: a -&gt; BTree a</span><span>
+</span><a name="line-15"></a><span class="hs-comment">--   deriving (Eq, Ord, Read, Show, Functor, Foldable, Traversable, Generic)</span><span>
+</span><a name="line-16"></a><span>
+</span><a name="line-17"></a><span class="hs-comment">-- data instance Sing :: BTree a -&gt; Type where</span><span>
+</span><a name="line-18"></a><span class="hs-comment">--   (:**) :: forall a (xs :: BTree a) (ys :: BTree a). SBTree xs -&gt; SBTree ys -&gt; Sing ('(:*) xs ys)</span><span>
+</span><a name="line-19"></a><span class="hs-comment">--   SLeaf :: forall a (x :: a). Sing x -&gt; Sing ('Leaf x)</span><span>
+</span><a name="line-20"></a><span>
+</span><a name="line-21"></a><span class="hs-comment">-- instance (SingI xs, SingI ys) =&gt; SingI ('(:*) xs ys) where sing = sing :** sing</span><span>
+</span><a name="line-22"></a><span class="hs-comment">-- instance SingI x =&gt; SingI ('Leaf x) where sing = SLeaf sing</span><span>
+</span><a name="line-23"></a><span>
+</span><a name="line-24"></a><span class="hs-comment">-- singIBTree :: forall a (xs :: BTree a). (forall (x :: a). Sing x -&gt; Dict (SingI x)) -&gt; Sing xs -&gt; Dict (SingI xs)</span><span>
+</span><a name="line-25"></a><span class="hs-comment">-- singIBTree singIA ((:**) sxs sys) =</span><span>
+</span><a name="line-26"></a><span class="hs-comment">--   withDict (singIBTree singIA sxs) $</span><span>
+</span><a name="line-27"></a><span class="hs-comment">--   withDict (singIBTree singIA sys) $</span><span>
+</span><a name="line-28"></a><span class="hs-comment">--   Dict</span><span>
+</span><a name="line-29"></a><span class="hs-comment">-- singIBTree singIA (SLeaf sx) =</span><span>
+</span><a name="line-30"></a><span class="hs-comment">--   withDict (singIA sx) $</span><span>
+</span><a name="line-31"></a><span class="hs-comment">--   Dict</span><span>
+</span><a name="line-32"></a><span>
+</span><a name="line-33"></a><span class="hs-comment">-- instance SingKind a =&gt; SingKind (BTree a) where</span><span>
+</span><a name="line-34"></a><span class="hs-comment">--   type Demote (BTree a) = BTree (Demote a)</span><span>
+</span><a name="line-35"></a><span>
+</span><a name="line-36"></a><span class="hs-comment">--   fromSing ((:**) sxs sys) = fromSing sxs :* fromSing sys</span><span>
+</span><a name="line-37"></a><span class="hs-comment">--   fromSing (SLeaf sx) = Leaf $ fromSing sx</span><span>
+</span><a name="line-38"></a><span>
+</span><a name="line-39"></a><span class="hs-comment">--   toSing ((:*) xs ys) =</span><span>
+</span><a name="line-40"></a><span class="hs-comment">--     case (toSing xs, toSing ys) of</span><span>
+</span><a name="line-41"></a><span class="hs-comment">--       (SomeSing sxs, SomeSing sys) -&gt; SomeSing $ sxs :** sys</span><span>
+</span><a name="line-42"></a><span class="hs-comment">--   toSing (Leaf x) =</span><span>
+</span><a name="line-43"></a><span class="hs-comment">--     case toSing x of</span><span>
+</span><a name="line-44"></a><span class="hs-comment">--       SomeSing sx -&gt; SomeSing $ SLeaf sx</span><span>
+</span><a name="line-45"></a><span>
+</span><a name="line-46"></a></pre></body></html>
