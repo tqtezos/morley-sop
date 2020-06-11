@@ -101,4 +101,5 @@ tests:
       - memory
       - constraints
       - lens
+      - checkers
 

@@ -125,19 +125,6 @@ $(singletonsOnly [d|
       (x <> "_2")
       (x == y)
 
-  -- uniqifyWith :: Symbol -> Symbol -> Symbol
-  -- uniqifyWith x y =
-  --   bool_
-  --     x
-  --     (x <> "_2")
-  --     (x == y)
-  --
-  -- uniqifyEpPathsSimple :: forall t. SymAnn t -> SymAnn t
-  -- uniqifyEpPathsSimple (ATOr ann aa ab as bs) =
-  --   ATOr ann aa (ab `uniqifyWith` aa) (uniqifyEpPathsSimple as) (uniqifyEpPathsSimple bs)
-  -- uniqifyEpPathsSimple (ATPair ann aa ab as bs) =
-  --   ATPair ann aa (ab `uniqifyWith` aa) (uniqifyEpPathsSimple as) (uniqifyEpPathsSimple bs)
-  -- uniqifyEpPathsSimple (ATOpq ta) = ATOpq ta
   uniqifyEpPathsSimple :: forall t. SymAnn t -> SymAnn t
   uniqifyEpPathsSimple (ATOr ann aa ab as bs) =
     ATOr
@@ -155,41 +142,7 @@ $(singletonsOnly [d|
       (uniqifyEpPathsSimple bs)
   uniqifyEpPathsSimple (ATOpq ta) = ATOpq ta
 
-  -- uniqueUnion :: Eq a => [a] -> [a] -> (Bool, [a])
-  --
-  -- the idea is to cache the sorted lists (sets) of
-  -- all EpPath's: then if there's a duplicate, we need to
-  -- uniqify
-  --
-  -- uniqifyEpPaths2' :: forall t. SymAnn t -> ([EpPath], SymAnn t)
-  -- uniqifyEpPaths2' (ATOr ann aa ab as bs) =
-  --   (epPathsAB, ATOr ann aa (ab `uniqifyWith` aa) (uniqifyEpPaths2' as) (uniqifyEpPaths2' bs)
-  --   where
-  --     \foundNonUnique ab aa ->
-  --       if foundNonUnique
-  --          then (aa <> "_1", ab <> "_2")
-  --          else (
-  --     (foundNonUnique, epPathsAB) =
-  --     (epPathsA, as') = uniqifyEpPaths2' as
-  --     (epPathsB, bs') = uniqifyEpPaths2' bs
-  -- uniqifyEpPaths2' (ATPair ann aa ab as bs) =
-  --   ATPair ann aa (ab `uniqifyWith` aa) (uniqifyEpPaths2' as) (uniqifyEpPaths2' bs)
-  -- uniqifyEpPaths2' (ATOpq ta) = ATOpq ta
-  --
-  --
-  -- uniqifyEpPaths2 :: forall t. SymAnn t -> SymAnn t
-  -- uniqifyEpPaths2 (ATOr ann aa ab as bs) =
-  --   ATOr ann aa (ab `uniqifyWith` aa) _ _
-  --   where
-  --     (epPathsA, as') = uniqifyEpPaths2' as
-  --     (epPathsB, bs') = uniqifyEpPaths2' bs
-  -- uniqifyEpPaths2 (ATPair ann aa ab as bs) =
-  --   ATPair ann aa (ab `uniqifyWith` aa) (uniqifyEpPaths2 as) (uniqifyEpPaths2 bs)
-  -- uniqifyEpPaths2 (ATOpq ta) = ATOpq ta
-
   |])
-
-
 
 
 $(singletonsOnly [d|

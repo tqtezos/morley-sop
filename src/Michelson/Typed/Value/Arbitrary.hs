@@ -32,8 +32,6 @@ import Michelson.Typed.Annotation.Sing
 import Michelson.Typed.Annotation.Sing.Alg
 import Michelson.Typed.Annotation.Sing.Notes
 
--- tt = _
-
 
 allTs :: forall f. Applicative f => f CT -> f T -> [f T]
 allTs xs fs =

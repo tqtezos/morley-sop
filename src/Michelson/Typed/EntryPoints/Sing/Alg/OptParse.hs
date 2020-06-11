@@ -99,12 +99,18 @@ parseValueOpq label =
       \case { VOpq xs -> xs } . toValueAlg <$>
       parseTypeCheckValue @(FromTOpq t) label
 
+-- | Unnamed fields are marked with @%unnamed@
+--
+-- (The @%@ symbol is not allowed in Michelson annotations.)
 parseEpField :: forall f t ann epPath fieldName. (Applicative f, (forall (x :: TOpq). SingI x => (Show (f (ValueOpq x)))), SingI t, SingI ann, SingI epPath, SingI fieldName)
   => Parser (EpField f t ann epPath fieldName)
 parseEpField =
   withDict1 (sEpFieldT @ErrM (sing @t) (sing @ann) (sing @epPath) (sing @fieldName)) $
   EpField (sing @fieldName) . join traceShow' <$>
-  parseRunAltE (pure $ WrapSing sing) (Comp1 . pure <$> parseValueOpq (show $ T.unpack <$> fromSing (sing @fieldName))) sing
+  parseRunAltE
+    (pure $ WrapSing sing)
+    (Comp1 . pure <$> parseValueOpq (fromMaybe "%unnamed" $ T.unpack <$> fromSing (sing @fieldName)))
+    sing
 
 parseEpFields :: forall f t ann epPath. (Applicative f, (forall (x :: TOpq). SingI x => (Show (f (ValueOpq x)))), SingI t, SingI ann, SingI epPath)
   => Mod CommandFields (EpFields f t ann epPath)
@@ -193,15 +199,19 @@ parsePrintValueFromContractSource forceSingleLine contractSrc =
   case parseSomeContractRaw (Left . unlines) contractSrc of
     Left err -> error . fromString $ unlines ["parsePrintValueFromContractSource: error parsing/typechecking contract:", err]
     Right (TypeCheck.SomeContract (FullContract _ (ParamNotesUnsafe paramNotes' :: ParamNotes cp) _)) ->  -- caseAltE
+      (flip const) (fromString . ("\nparsed type:\n" <>) . show . fromSing $ sing @cp) $
+      (flip const) (fromString . ("\nparsed annotation:\n" <>) . show $ paramNotes') $
       case toSing (Michelson.annotatedFromNotes paramNotes') of
         SomeSing (sann :: Sing ann) ->
-          let sann' =  (sUniqifyEpPathsSimple (singToAnnotatedAlg sann)) in
+          let sann' =  (sUniqifyEpPathsSimpler (singToAnnotatedAlg sann)) in
             withDict1 (singToTAlg (sing @cp)) $
-            traceShow' ("original" :: String, fromSing (singToAnnotatedAlg sann)) $
-            -- traceShow' ("next" :: String, fromSing (sUniqifyEpPaths (singToAnnotatedAlg sann))) $
-            traceShow' ("next_uniquified" :: String, fromSing sann') $
+            (flip const) (fromString . ("\npre-uniqified annotation:\n" <>) . show $ fromSing (singToAnnotatedAlg sann)) $
+            (flip const) (fromString . ("\nuniqified annotation:\n" <>) . show $ fromSing (sUniqifyEpPathsSimpler (singToAnnotatedAlg sann))) $
+            -- traceShow ("original" :: String, fromSing (singToAnnotatedAlg sann)) $
+            -- -- traceShow' ("next" :: String, fromSing (sUniqifyEpPathsSimpler (singToAnnotatedAlg sann))) $
+            -- traceShow ("next_uniquified" :: String, fromSing sann') $
             withDict1 sann' $
-            parsePrintValue @(ToTAlg cp) @((UniqifyEpPathsSimple (ToAnnotatedAlg ann))) forceSingleLine
+            parsePrintValue @(ToTAlg cp) @((UniqifyEpPathsSimpler (ToAnnotatedAlg ann))) forceSingleLine
 
 parsePrintValueFromContract :: IO ()
 parsePrintValueFromContract = do
@@ -209,7 +219,7 @@ parsePrintValueFromContract = do
   case args of
     [] -> error "The first argument should be a Michelson contract"
     (contractSrc:args') -> do
-      -- putDoc $ parserUsage entryPointsParserPrefs (parsePrintValueFromContractSource True $ fromString contractSrc) "fooooff"
+      -- putDoc $ parserUsage entryPointsParserPrefs (parsePrintValueFromContractSource True $ fromString contractSrc) "hello world!"
       -- putStrLn @String ""
       let (helpLines, parsedValue') = parsePrintValueFromContractSource True $ fromString contractSrc
       bool

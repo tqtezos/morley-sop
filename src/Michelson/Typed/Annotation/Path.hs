@@ -4,15 +4,18 @@
 
 module Michelson.Typed.Annotation.Path where
 
-import Prelude hiding (show)
+import Prelude hiding (show, many, note, State)
 import Text.Show
 
-import Data.Aeson
+import Data.Aeson (ToJSON(..))
 import qualified Data.Text as T
 import Data.Singletons.TH
 import Data.Singletons.TypeLits
 
 import Data.Constraint.HasDict1
+
+import Test.QuickCheck.Arbitrary
+import Test.QuickCheck.Gen
 
 -- | An entrypoint-`Path` is a `Path` where the annotations are `Symbol`'s
 type EpPath = Path Symbol
@@ -29,8 +32,8 @@ data Path a where
 ppPath :: Path Text -> Text
 ppPath =
   \case
-    (:*) x y -> T.intercalate "*" . filter (not . T.null) $ collectProds $ x :* y
-    (:+) x y -> T.intercalate "%" . filter (not . T.null) $ collectSums $ x :+ y
+    (:*) x y -> T.intercalate "*" $ collectProds $ x :* y -- . filter (not . T.null)
+    (:+) x y -> T.intercalate "%" $ collectSums  $ x :+ y -- . filter (not . T.null)
     Here -> mempty
   where
     parens :: Text -> Text
@@ -51,10 +54,10 @@ ppPath =
         (:+) x y -> x : collectSums y
         x -> [parens $ ppPath x]
 
-deriving instance Show a => Show (Path a)
+-- deriving instance Show a => Show (Path a)
 
--- instance Show (Path Text) where
---   show = T.unpack . ppPath
+instance Show (Path Text) where
+  show = T.unpack . ppPath
 --
 --   showsPrec _ Here = showString ""
 --
@@ -70,6 +73,18 @@ instance ToJSON (Path Text) where
 --   toJSON = toJSON . id @String . show
 --
 -- instance FromJSON a => FromJSON (Path a)
+
+instance a ~ Text => Arbitrary (Path a) where
+  arbitrary = oneof $
+    [ liftM2 (:*) arbitrary arbitrary
+    , liftM2 (:+) (fromString <$> arbitrary) arbitrary
+    , return Here
+    ]
+
+  shrink ((:*) x y) = x : y : liftM2 (:*) (shrink x) (shrink y)
+  shrink ((:+) x y) = y : liftM2 (:+) (fmap fromString . shrink . T.unpack $ x) (shrink y)
+  shrink Here = []
+
 
 $(genSingletons [''Path])
 $(singEqInstance ''Path)

@@ -7,7 +7,6 @@ import Michelson.Typed.EntryPoints.Sing.Alg
 
 import Michelson.Typed.Annotation.Sing
 import Michelson.Typed.Annotation.Sing.Alg
--- import Michelson.Typed.EntryPoints.Sing.Alg.Fields
 import Michelson.Typed.EntryPoints.Sing.Alg.Paths
 import Michelson.Typed.EntryPoints.Sing.Alg.Types
 import Michelson.Typed.T.Alg
@@ -15,18 +14,11 @@ import Michelson.Typed.T.Sing
 import Michelson.Typed.Value.Arbitrary ()
 import Michelson.Typed.Value.Free
 
--- import qualified Michelson.Typed.T.Alg as Alg
--- import qualified Michelson.Typed.Annotation.Sing as An
--- import qualified Michelson.Typed.T as Michelson
--- import qualified Michelson.Typed.Value as Michelson
-
 import Lorentz.Value
 import Michelson.Typed.Scope
 
 import Control.Applicative
 import Control.Monad
--- import Data.Bifunctor
--- import Data.Either
 import Data.Function
 import Data.Semigroup
 import Data.String
@@ -71,7 +63,7 @@ test_IsoEpValue = testProperty "Iso runEpValue" $
                   \(ann :: Annotated Text t') (x :: Value t') ->
                   case toSing ann of
                     SomeSing (sann :: Sing ann') ->
-                      let singToAnnotatedAlgSann = ((sUniqifyEpPathsSimpler (singToAnnotatedAlg sann)) :: Sing ((UniqifyEpPathsSimpler (ToAnnotatedAlg ann')))) in -- singToAnnotatedAlg sann in
+                      let singToAnnotatedAlgSann = ((sUniqifyEpPathsSimpler (singToAnnotatedAlg sann)) :: Sing ((UniqifyEpPathsSimpler (ToAnnotatedAlg ann')))) in
                       counterexample (("epPaths: "<>) . show $ fromSing (sEpPaths (singToAnnotatedAlg sann))) $
                       counterexample (("uniqified epPaths: "<>) . show $ fromSing (sEpPaths singToAnnotatedAlgSann)) $
                       counterexample (("uniqified epPaths fields: \n"<>) . unlines . fmap show $ fromSing (singFun1 @(EpFieldNamesErrMSym2 (ToTAlg t') ((UniqifyEpPathsSimpler (ToAnnotatedAlg ann')))) (sEpFieldNamesErrM singToTAlgSt singToAnnotatedAlgSann) `sFmap` sEpPaths singToAnnotatedAlgSann)) $
