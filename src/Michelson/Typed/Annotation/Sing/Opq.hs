@@ -20,7 +20,7 @@ import Data.Constraint.HasDict1
 
 import Michelson.Typed.Annotation.Sing (Annotated, TraverseAnnotatedSym0, traverseAnnotated, sTraverseAnnotated)
 
-
+-- | `Annotated` without the "algebraic" part, i.e. or/pair
 data AnnotatedOpq a (t :: TOpq) where
   ATc         :: a -> AnnotatedOpq a ('Tc ct)
   ATKey       :: a -> AnnotatedOpq a 'TKey

@@ -24,7 +24,9 @@ import Data.Singletons.Prelude.Monad
 import Data.Singletons.Prelude.Function
 import Data.Singletons.TH
 
-
+-- | `Either` with two error values:
+-- - `AltThrow` for recoverable errors
+-- - `AltExcept` for non-recoverable errors
 data AltE str a
   = PureAltE a
   | AltThrow str

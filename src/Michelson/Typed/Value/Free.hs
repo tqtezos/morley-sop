@@ -7,8 +7,7 @@ import Prelude (Num(..))
 import Data.Semigroup
 import Data.Either
 import Control.Applicative
-import Control.Monad -- hiding (fail)
--- import Control.Monad.Fail
+import Control.Monad
 import Data.Function
 import Data.Functor.Classes
 import Data.Bifunctor
@@ -93,6 +92,7 @@ data ValueAlg' instr t where
 
   VOpq :: forall t instr. ValueOpq' instr t -> ValueAlg' instr ('TOpq t)
 
+-- | Convert a `Value'` to a `ValueAlg'`
 toValueAlg :: Value' instr t -> ValueAlg' instr (ToTAlg t)
 toValueAlg (Michelson.VC xs) = VOpq $ VC xs
 toValueAlg (Michelson.VKey xs) = VOpq $ VKey xs
@@ -110,7 +110,7 @@ toValueAlg (Michelson.VLam xs) = VOpq $ VLam xs
 toValueAlg (Michelson.VMap xs) = VOpq $ VMap xs
 toValueAlg (Michelson.VBigMap xs) = VOpq $ VBigMap xs
 
--- | unused
+-- | Convert a `ValueAlg'` to a `Value'`
 fromValueAlg :: ValueAlg' instr t -> Value' instr (FromTAlg t)
 fromValueAlg (VOpq (VC xs)) = Michelson.VC xs
 fromValueAlg (VOpq (VKey xs)) = Michelson.VKey xs
@@ -131,6 +131,7 @@ fromValueAlg (VOpq (VBigMap xs)) = Michelson.VBigMap xs
 instance SingI t => Show (ValueAlg' instr t) where
   show = show . fromValueAlg
 
+-- | `ValueAlg'` where opaque fields are wrapped in @f@
 data ValueAlgT' instr f t where
   VTPair :: forall l r instr f. (ValueAlgT' instr f l, ValueAlgT' instr f r) -> ValueAlgT' instr f ('TPair l r)
   VTOr :: forall l r instr f. (ValueAlgT' instr f l, ValueAlgT' instr f r) -> ValueAlgT' instr f ('TOr l r)

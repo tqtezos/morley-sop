@@ -119,7 +119,7 @@ emptyEpFields :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPat
   -> EpFields f t ann epPath
 emptyEpFields st sann sepPath =
   EpFields sepPath $
-  singToRunAltE
+  pureRunAltE
     WrapSing
     (\sxs ->
       withDict (singAllSingI sxs) $

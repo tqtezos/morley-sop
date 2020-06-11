@@ -36,20 +36,28 @@ $(singletons [d|
 -- Combining errors
 -------------------
 
+-- | `String` tagging multiple errors
 multipleErrors :: String
 multipleErrors = "multiple errors:"
 
+-- | Collect multiple errors (the result of `mergeErrors`
 unMultipleErrors :: [String] -> [String]
 unMultipleErrors [] = []
 unMultipleErrors (z:zs) =
   bool_ (z :) id (z == multipleErrors) zs
 
+-- | Merge two lisy of errors
 mergeErrors :: [String] -> [String] -> [String]
 mergeErrors x y =
   multipleErrors : (
     unMultipleErrors x ++
     unMultipleErrors y)
 
+-- | Utility to combine two instances of `throwAlt`
+--
+-- @
+--  combineThrowAlt isFailXs errXs isFailYs errYs =
+-- @
 combineThrowAlt :: AltError [String] f => Bool -> [String] -> Bool -> [String] -> f a
 combineThrowAlt isFailXs errXs isFailYs errYs =
   throwAlt (isFailXs || isFailYs) (mergeErrors errXs errYs)

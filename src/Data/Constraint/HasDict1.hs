@@ -2,7 +2,6 @@
 
 module Data.Constraint.HasDict1 where
 
--- import Prelude (($))
 import Data.Either
 import Data.Maybe
 import Data.List.NonEmpty (NonEmpty(..))
@@ -10,9 +9,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 import Data.Constraint
 import Data.Singletons
 import Data.Singletons.TypeLits (Sing(..), Symbol)
--- import Data.Singletons.Prelude.List (Sing(..))
 import Data.Singletons.Prelude.List.NonEmpty (Sing(..))
--- import Data.Singletons.Prelude.Tuple ()
 import Data.Singletons.Prelude.Either
 import Data.Singletons.Prelude.Maybe
 
@@ -23,6 +20,7 @@ import Language.Haskell.TH.Syntax
 class HasDict1 a where
   evidence1 :: forall (x :: a). Sing x -> Dict (SingI x)
 
+-- | `withDict` specialized to `evidence1`
 withDict1 :: forall a (x :: a) r. HasDict1 a => Sing x -> (SingI x => r) -> r
 withDict1 x = withDict (evidence1 x)
 

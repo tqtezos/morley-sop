@@ -1,11 +1,3 @@
--- {-# LANGUAGE MagicHash, RankNTypes, PolyKinds, GADTs, DataKinds,
---              FlexibleContexts, FlexibleInstances,
---              TypeFamilies, TypeOperators, TypeFamilyDependencies,
---              UndecidableInstances, ConstraintKinds,
---              ScopedTypeVariables, TypeApplications, AllowAmbiguousTypes,
---              PatternSynonyms, ViewPatterns, StandaloneKindSignatures #-}
-
--- {-# LANGUAGE StandaloneKindSignatures #-}
 {-# OPTIONS -Wno-missing-export-lists #-}
 
 -- | Compat module until singletons >= 2.6 can be used with morley
@@ -62,9 +54,8 @@ instance forall a (s :: Sing a). SingI a => SingI ('WrapSing s) where
 instance ShowSing k => Show (WrappedSing (a :: k)) where
   showsPrec p (WrapSing s) = showParen (p >= 11) $
     showString "WrapSing {unwrapSing = " . showsPrec 0 s . showChar '}'
-      -- :: ShowSing' a => ShowS
 
 instance ShowSing k => Show (SWrappedSing (ws :: WrappedSing (a :: k))) where
   showsPrec p (SWrapSing s) = showParen (p >= 11) $
     showString "SWrapSing {sUnwrapSing = " . showsPrec 0 s . showChar '}'
-      -- :: ShowSing' a => ShowS
+

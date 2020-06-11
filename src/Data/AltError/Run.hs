@@ -39,12 +39,15 @@ instance forall a (f :: [Symbol] -> Type) (g :: a -> Type) (xs :: AltE [Symbol] 
     case sing @xs of
       SPureAltE sxs -> withDict1 sxs $ showsUnaryWith showsPrec "RunPureAltE" d xs
 
+-- | Unwrap `RunPureAltE`
 unRunPureAltE  :: forall a (f :: [Symbol] -> Type) (g :: a -> Type) (xs :: a). RunAltE f g ('PureAltE  xs) ->   g xs
 unRunPureAltE (RunPureAltE  xs) = xs
 
+-- | Unwrap `RunAltThrow`
 unRunAltThrow  :: forall a (f :: [Symbol] -> Type) (g :: a -> Type) (xs :: [Symbol]). RunAltE f g ('AltThrow  xs) -> f xs
 unRunAltThrow (RunAltThrow  xs) = xs
 
+-- | Unwrap `RunAltExcept`
 unRunAltExcept :: forall a (f :: [Symbol] -> Type) (g :: a -> Type) (xs :: [Symbol]). RunAltE f g ('AltExcept xs) -> f xs
 unRunAltExcept (RunAltExcept xs) = xs
 
@@ -73,7 +76,7 @@ runAltEAlt =
         SAltThrow   sys -> \_xss _yss -> RunAltExcept $ WrapSing $ sing @MultipleErrors `SCons` (sUnMultipleErrors sxs %++ sUnMultipleErrors sys)
         SAltExcept  sys -> \_xss _yss -> RunAltExcept $ WrapSing $ sing @MultipleErrors `SCons` (sUnMultipleErrors sxs %++ sUnMultipleErrors sys)
 
-
+-- | Parse `RunAltE`, given parsers for @[`Symbol`]@ and @a@
 parseRunAltE :: forall a (f :: [Symbol] -> Type) (g :: a -> Type) (h :: Type -> Type) (xs :: AltE [Symbol] a). (HasDict1 a, Functor h)
   => (forall (x :: [Symbol]). SingI x => h (f x))
   -> (forall (x :: a). SingI x => h (g x))
@@ -85,6 +88,9 @@ parseRunAltE fs gs sxs =
     SAltExcept ys -> RunAltExcept <$> withDict1 ys fs
     SPureAltE ys -> RunPureAltE <$> withDict1 ys gs
 
+-- | Given a method to fuse @f@ and @g@
+-- when @g@ is applied to a `Sing` value,
+-- embed @f@ in `RunAltE`
 wrapRunAltE :: forall f g g' xs. Functor f
   => (forall x. Sing x -> f (g x) -> g' x)
   -> Sing xs
@@ -96,12 +102,14 @@ wrapRunAltE fs sxs xss =
     SAltExcept sys -> RunAltExcept $ WrapSing sys
     SPureAltE sys -> RunPureAltE $ fs sys $ unRunPureAltE <$> xss
 
-singToRunAltE :: forall a (f :: [Symbol] -> Type) (g :: a -> Type) (xs :: AltE [Symbol] a). ()
+-- | Given methods to produce @f, g@, resp.,
+-- produce a `RunAltE` given any `Sing`
+pureRunAltE :: forall a (f :: [Symbol] -> Type) (g :: a -> Type) (xs :: AltE [Symbol] a). ()
   => (forall (x :: [Symbol]). Sing x -> f x)
   -> (forall (x :: a). Sing x -> g x)
   -> Sing xs
   -> RunAltE f g xs
-singToRunAltE fs gs sxs =
+pureRunAltE fs gs sxs =
   case sxs of
     SAltThrow sys -> RunAltThrow $ fs sys
     SAltExcept sys -> RunAltExcept $ fs sys

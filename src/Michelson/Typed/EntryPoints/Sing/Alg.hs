@@ -44,6 +44,7 @@ trace2 = flip const -- trace . fromString -- flip const
 
 -- after conversion, likely want to expose top-layer NS, currently encoded as NP (f :.: _):
 -- (f a -> m (g a)) -> NP f xs -> m (NS g xs)
+-- | `EpValue` where the fields may be empty.
 newtype EpValueF (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) where
   EpValueF :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t). ()
     => NP (EpFields f t ann) (EpPaths ann)
@@ -51,6 +52,7 @@ newtype EpValueF (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) where
 
 deriving instance (SOP.All (SOP.Compose Show (EpFields f t ann)) (EpPaths ann)) => Show (EpValueF f t ann)
 
+-- | An empty `EpValueF`, using `emptyEpFields`
 emptyEpValueF :: forall f (t :: TAlg) (ann :: SymAnn t). AltError [String] f
   => Sing t
   -> Sing ann
@@ -60,6 +62,7 @@ emptyEpValueF st sann =
   EpValueF $
   SOP.hcpure (Proxy @SingI) $ emptyEpFields st sann sing
 
+-- | Transform the @f@ in `EpValueF`
 transEpValueF :: forall (f :: Type -> Type) (g :: Type -> Type) (t :: TAlg) (ann :: SymAnn t). ()
   => (forall t'. SingI t' => f (ValueOpq t') -> g (ValueOpq t'))
   -> Sing t
@@ -97,6 +100,7 @@ lensEpValueF st sann fs xs =
     sEpPaths sann
   )
 
+-- | A proof that `SingI` implies `Show` implies `SOP.All` `Show`
 prfAllShow :: forall a g (xs :: [a]). (HasDict1 a, forall x. SingI x => Show (g x)) => Sing xs -> Dict (SOP.All (SOP.Compose Show g) xs)
 prfAllShow SNil = Dict
 prfAllShow (SCons sx sxs) =
@@ -104,6 +108,8 @@ prfAllShow (SCons sx sxs) =
   withDict1 sx $
   Dict
 
+-- | Convert `NP` to `NS` by picking the only non-erroring
+-- entrypoint as the sum choice
 npToNS :: forall a (f :: Type -> Type) (g :: a -> Type) (xs :: [a]). (HasDict1 a, AltError [String] f, forall x. SingI x => Show (g x))
   => Sing xs
   -> NP (f :.: g) xs
@@ -115,6 +121,7 @@ npToNS (SCons sx sxs) ((SOP.:*) (Comp1 xs) xss) =
   fmap SOP.Z xs <||>
   fmap SOP.S (npToNS sxs xss)
 
+-- | Use `altErr` to make an empty `NP`
 emptyNP :: forall a (f :: Type -> Type) (g :: a -> Type) (xs :: [a]). (HasDict1 a, SingKind a, Show (Demote a), AltError [String] f, forall x. SingI x => Show (g x), SingI xs, SOP.SListI xs)
   => NP (f :.: g) xs
 emptyNP =
@@ -125,6 +132,9 @@ emptyNP =
         SCons sx sxs -> withDict1 sx $ withDict1 sxs $
           Comp1 (altErr . ("emptyNP SOP.SCons: " :) . (:[]) . show . fromSing $ sing @xs) SOP.:* emptyNP
 
+-- | Convert `NS` to `NP` by filling all
+-- non-chosen slots with `altErr` and running
+-- `pure` on the single chosen slot
 nsToNP :: forall a (f :: Type -> Type) (g :: a -> Type) (xs :: [a]). (HasDict1 a, SingKind a, Show (Demote a), AltError [String] f, forall x. Show x => Show (f x), forall x. SingI x => Show (g x), SingI xs, SOP.SListI xs)
   => NS g xs
   -> NP (f :.: g) xs
@@ -145,6 +155,7 @@ nsToNP xss@(SOP.S xs) =
       Comp1 (altErr . ("nsToNP SCons: " :) . (:[]) . show . fromSing $ sing @xs)
       SOP.:* nsToNP xs
 
+-- |
 newtype EpValue (t :: TAlg) (ann :: SymAnn t) where
   EpValue :: forall (t :: TAlg) (ann :: SymAnn t). ()
     => NS (EpFields I t ann) (EpPaths ann)
@@ -152,6 +163,7 @@ newtype EpValue (t :: TAlg) (ann :: SymAnn t) where
 
 deriving instance (SOP.All (SOP.Compose Show (EpFields I t ann)) (EpPaths ann)) => Show (EpValue t ann)
 
+-- | Convert an `EpValue` to the `Value` it represents
 runEpValue :: forall f (t :: TAlg) (ann :: SymAnn t). (AltError [String] f, Monad f, Show1 f, forall x. Show x => Show (f x))
   => Sing t
   -> Sing ann
@@ -171,6 +183,7 @@ runEpValue st sann xs =
       set (lensEpValueF st sann) ys $ altErrValueAlgT ["runEpValue", show $ fromSing st] st
     return $ fromValueAlg zs
 
+-- | Assert that no fields error and convert to an `EpValue`
 fromEpValueF :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t). AltError [String] f
   => Sing t
   -> Sing ann
@@ -182,6 +195,7 @@ fromEpValueF st sann (EpValueF xs) =
   withDict1 sann $
   EpValue <$> npToNS (sEpPaths sann) (SOP.hmap (Comp1 . unwrapEpFields st sann) xs)
 
+-- See `prfAllShow`
 prfAllShowEpFields :: forall t (ann :: SymAnn t) xs. Sing t -> Sing ann -> Sing xs -> Dict (SOP.All (SOP.Compose Show (EpFields I t ann)) xs)
 prfAllShowEpFields _st _sann SNil = Dict
 prfAllShowEpFields st sann (SCons _sx sxs) =
@@ -190,6 +204,7 @@ prfAllShowEpFields st sann (SCons _sx sxs) =
   withDict (prfAllShowEpFields st sann sxs) $
   Dict
 
+-- | Convert an `EpValue` to an `EpValueF`
 toEpValueF :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t). (AltError [String] f, Show1 f, forall x. Show x => Show (f x))
   => Sing t
   -> Sing ann
@@ -207,23 +222,6 @@ toEpValueF st sann (EpValue xs) =
   nsToNP @EpPath @f $
   join (trace2 . fromString . ("\n  before nsToNP:\n"++) . show) $
   xs
-
--- unused
--- -- | Extract the value-level `EpPath` from an `EpValue`
--- epValuePath :: forall (t :: TAlg) (ann :: SymAnn t). ()
---   => Sing t
---   -> Sing ann
---   -> EpValue t ann
---   -> Path Text
--- epValuePath _st sann (EpValue xs) =
---   withDict (singAllSingI $ sEpPaths sann) $
---   SOP.hcollapse $
---   SOP.hcmap (Proxy @SingI) mapper xs
---   where
---     mapper :: forall (epPath :: EpPath). SingI epPath
---       => EpFields I t ann epPath
---       -> K (Path Text) epPath
---     mapper = K . const (fromSing $ sing @epPath)
 
 -- | Extract the fields from an `EpValue`
 epValueFields :: forall (t :: TAlg) (ann :: SymAnn t) r. ()

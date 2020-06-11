@@ -24,7 +24,7 @@ import Michelson.Typed.Annotation.Sing.Notes ()
 import Michelson.Typed.Annotation.Sing.Opq
 import qualified Michelson.Typed.Annotation.Sing as Michelson
 
-
+-- | The "algebraic", i.e. or/pair, part of `Annotated`
 data AnnotatedAlg a (t :: TAlg) where
   ATPair      :: a -> a -> a
               -> AnnotatedAlg a p -> AnnotatedAlg a q -> AnnotatedAlg a ('TPair p q)
@@ -120,6 +120,7 @@ type family ToAnnotatedAlg (ann :: Annotated a t) :: AnnotatedAlg a (ToTAlg t) w
   ToAnnotatedAlg ('Michelson.ATMap ta tb xs) = 'ATOpq ('ATMap ta tb xs)
   ToAnnotatedAlg ('Michelson.ATBigMap ta tb xs) = 'ATOpq ('ATBigMap ta tb xs)
 
+-- | Convert a `Sing` `Annotated` to an `AnnotatedAlg`
 singToAnnotatedAlg :: forall a t (ann :: Annotated a t). Sing ann -> Sing (ToAnnotatedAlg ann)
 singToAnnotatedAlg (Michelson.SATc ta) = SATOpq (SATc ta)
 singToAnnotatedAlg (Michelson.SATKey ta) = SATOpq (SATKey ta)
@@ -154,6 +155,7 @@ type family FromAnnotatedAlg (ann :: AnnotatedAlg a t) :: Annotated a (FromTAlg 
   FromAnnotatedAlg ('ATPair ta tb tc xs ys) = ('Michelson.ATPair ta tb tc (FromAnnotatedAlg xs) (FromAnnotatedAlg ys))
   FromAnnotatedAlg ('ATOr ta tb tc xs ys) = ('Michelson.ATOr ta tb tc (FromAnnotatedAlg xs) (FromAnnotatedAlg ys))
 
+-- | Convert a `Sing` `AnnotatedAlg` to an `Annotated`
 singFromAnnotatedAlg :: forall a t (ann :: AnnotatedAlg a t). Sing ann -> Sing (FromAnnotatedAlg ann)
 singFromAnnotatedAlg (SATOpq (SATc ta)) = (Michelson.SATc ta)
 singFromAnnotatedAlg (SATOpq (SATKey ta)) = (Michelson.SATKey ta)
@@ -171,6 +173,7 @@ singFromAnnotatedAlg (SATOpq (SATBigMap ta tb xs)) = (Michelson.SATBigMap ta tb 
 singFromAnnotatedAlg (SATPair ta tb tc xs ys) = (Michelson.SATPair ta tb tc (singFromAnnotatedAlg xs) (singFromAnnotatedAlg ys))
 singFromAnnotatedAlg (SATOr ta tb tc xs ys) = (Michelson.SATOr ta tb tc (singFromAnnotatedAlg xs) (singFromAnnotatedAlg ys))
 
+-- | Uses `singFromAnnotatedAlg`
 instance Eq (AnnotatedAlg Text t) where
   xs == ys =
     case (toSing xs, toSing ys) of

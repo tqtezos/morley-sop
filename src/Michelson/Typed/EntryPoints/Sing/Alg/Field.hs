@@ -31,7 +31,7 @@ import Data.Singletons
 import Data.Singletons.Prelude.List hiding (All)
 import Data.Constraint
 
-
+-- | `Sing` implies `All` `SingI`
 singAllSingI :: forall a (xs :: [a]). HasDict1 a
   => Sing xs
   -> Dict (All SingI xs)
@@ -41,7 +41,8 @@ singAllSingI (SCons sx sxs) =
   case singAllSingI sxs of
     Dict -> Dict
 
-
+-- | Produce a `NP` from a `Sing` list by exposing the `Sing` elements
+-- with `WrappedSing`
 npWrappedSing :: forall a (xs :: [a]). HasDict1 a
   => Sing xs
   -> NP WrappedSing xs
@@ -52,6 +53,7 @@ npWrappedSing sxs =
     wrapSing :: forall x. SingI x => WrappedSing x
     wrapSing = WrapSing sing
 
+-- | A single field of a value
 data EpField (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Maybe Symbol) where
   EpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Maybe Symbol). ()
     => Sing fieldName
@@ -63,6 +65,7 @@ instance (forall t'. SingI t' => Show (f (ValueOpq t')), SingI t, SingI ann, Sin
     withDict1 (sEpFieldT @ErrM (sing @t) (sing @ann) (sing @epPath) sfieldName) $
     showsBinaryWith showsPrec showsPrec "EpField" d (fromSing sfieldName) xs
 
+-- | Expose the effects of @f@ at the top level of an `EpField`
 unwrapEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Maybe Symbol). Applicative f
   => EpField f t ann epPath fieldName
   -> f (EpField I t ann epPath fieldName)
@@ -73,6 +76,7 @@ unwrapEpField (EpField sfieldName xs) =
     RunAltExcept ys -> pure $ RunAltExcept ys
     RunPureAltE (Comp1 ys) -> RunPureAltE . Comp1 . I <$> ys
 
+-- | Embed the effects of @f@ at the top level of an `EpField`
 wrapEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Maybe Symbol). (Functor f, SingI epPath, SingI fieldName)
   => Sing t
   -> Sing ann
@@ -88,6 +92,7 @@ wrapEpField st sann xs =
          EpField _sfieldName xss -> SOP.unI $ unComp1 $ unRunPureAltE xss
       ) <$> xs
 
+-- | Make an empty `EpField` using `altErr`
 emptyEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Maybe Symbol). AltError [String] f
   => Sing t
   -> Sing ann
@@ -101,7 +106,7 @@ emptyEpField st sann sepPath sfieldName =
     SAltExcept serr -> RunAltExcept $ WrapSing serr
     SPureAltE sResult -> RunPureAltE $ Comp1 . altErr . ("emptyEpField SPureAltE: " :) . (: []) . show $ fromSing sResult
 
-
+-- | Transform the @f@ of an `EpField`
 transEpField :: forall (f :: Type -> Type) (g :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Maybe Symbol). ()
   => (forall t'. SingI t' => f (ValueOpq t') -> g (ValueOpq t'))
   -> Sing t

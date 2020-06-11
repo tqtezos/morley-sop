@@ -26,9 +26,11 @@ instance HasDict1 CT where
 instance HasDict1 T where
   evidence1 = $(gen_evidence1 ''T)
 
+-- | Proof that `Sing` implies `Typeable`
 singTypeableCT :: forall (t :: CT). Sing t -> Dict (Typeable t)
 singTypeableCT x = $(sCases ''CT [|x|] [|Dict|])
 
+-- | Proof that `Sing` implies `Typeable`
 singTypeableT :: forall (t :: T). Sing t -> Dict (Typeable t)
 singTypeableT (STc ct) =
   withDict (singTypeableCT ct) $
@@ -75,13 +77,14 @@ singTypeableT (STBigMap st su) =
 $(genDefunSymbols [''CT, ''T])
 $(singShowInstances [''CT, ''T])
 
-
+-- | Assert `HasNoOp` or fail with an `error`
 assertOpAbsense :: forall (t :: T) a. Sing t -> (HasNoOp t => a) -> a
 assertOpAbsense st f =
   case opAbsense st of
     Nothing -> error "assertOpAbsense"
     Just Dict -> withDict1 st $ forbiddenOp @t f
 
+-- | Assert `HasNoNestedBigMaps` or fail with an `error`
 assertNestedBigMapsAbsense :: forall (t :: T) a. Sing t -> (HasNoNestedBigMaps t => a) -> a
 assertNestedBigMapsAbsense st f =
   case nestedBigMapsAbsense st of
