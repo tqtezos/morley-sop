@@ -43,7 +43,9 @@ Haskell [stack](https://docs.haskellstack.org/en/stable/README/) may be found
 
 ### Documentation
 
-Haddock-generated documentation is available at [docs/index.html](docs/index.html).
+Haddock-generated documentation is available
+[here](https://tqtezos.github.io/morley-sop/)
+or at [docs/index.html](docs/index.html).
 
 To rebuild the documentation, run: `stack haddock` and copy the generated `doc`
 directory to `docs`.
