@@ -2,6 +2,8 @@
 
 module Test.Iso where
 
+import Prelude
+
 import Test.QuickCheck
 
 propIso :: (Eq a, Show a) => (a -> b) -> (b -> a) -> a -> Property

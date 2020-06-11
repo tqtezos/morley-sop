@@ -8,12 +8,8 @@ import Michelson.Typed.Annotation.Path
 import Lorentz.Value
 import Michelson.Typed.Scope
 
-import Control.Monad
-import Data.Function
-import Data.List
+import Prelude hiding (ord)
 import Data.Type.Equality
-import Prelude (Ord(..))
-import Text.Show
 
 import Data.Constraint.HasDict1
 import Michelson.Typed.Annotation.Sing

@@ -8,6 +8,7 @@ import Michelson.Typed.Value.Arbitrary ()
 
 import Data.Constraint.HasDict1
 
+import Prelude
 import Data.Singletons
 
 import Test.Tasty (TestTree)

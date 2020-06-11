@@ -15,6 +15,7 @@ import Data.Type.Equality
 import Data.AltError
 import Data.Constraint.HasDict1
 
+import Prelude
 import Data.Constraint
 import Data.Singletons
 

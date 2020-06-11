@@ -7,7 +7,7 @@ import Lorentz.Contracts.Util ()
 
 import Lorentz.Value
 
-import Data.Function
+import Prelude hiding (ord)
 
 import qualified Tezos.Crypto.Ed25519 as Ed25519
 import qualified Tezos.Crypto.Secp256k1 as Secp256k1

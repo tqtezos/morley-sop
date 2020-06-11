@@ -2,6 +2,8 @@
 
 module Test.Data.Singletons.SingKind where
 
+import Prelude
+
 import Test.Iso
 
 import Test.QuickCheck

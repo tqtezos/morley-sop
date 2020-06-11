@@ -5,12 +5,12 @@ import Michelson.Typed.Annotation.Sing
 
 import Michelson.Typed.T.Sing ()
 import Michelson.Typed.Value.Arbitrary ()
-
 import Michelson.Typed.T ()
 import Util.Test.Arbitrary ()
 
 import Data.Constraint.HasDict1
 
+import Prelude
 import Data.Singletons
 import Data.Singletons.TypeLits
 
