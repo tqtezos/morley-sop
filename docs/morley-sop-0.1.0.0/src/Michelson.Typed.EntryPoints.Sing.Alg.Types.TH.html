@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span>
+</span><a name="line-2"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Michelson.Typed.EntryPoints.Sing.Alg.Types.TH</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-3"></a><span>
+</span><a name="line-4"></a><span class="hs-comment">-- import Michelson.Typed.EntryPoints.Sing.Alg.Types</span><span>
+</span><a name="line-5"></a><span>
+</span><a name="line-6"></a><span class="hs-comment">-- import Data.Singletons.TH</span><span>
+</span><a name="line-7"></a><span>
+</span><a name="line-8"></a><span class="hs-comment">-- $(genDefunSymbols</span><span>
+</span><a name="line-9"></a><span class="hs-comment">--   [ ''EpFieldTFieldEq</span><span>
+</span><a name="line-10"></a><span class="hs-comment">--   , ''EpFieldTAssertHere</span><span>
+</span><a name="line-11"></a><span class="hs-comment">--   , ''EpFieldTEntrypointEq</span><span>
+</span><a name="line-12"></a><span class="hs-comment">--   , ''EpFieldTResolveOr</span><span>
+</span><a name="line-13"></a><span class="hs-comment">--   , ''EpFieldTResolvePair</span><span>
+</span><a name="line-14"></a><span class="hs-comment">--   , ''EpFieldT</span><span>
+</span><a name="line-15"></a><span class="hs-comment">--   ])</span><span>
+</span><a name="line-16"></a><span>
+</span><a name="line-17"></a><span class="hs-comment">-- $(genDefunSymbols</span><span>
+</span><a name="line-18"></a><span class="hs-comment">--   -- [ ''EpFieldTFieldEq</span><span>
+</span><a name="line-19"></a><span class="hs-comment">--   -- , ''EpFieldTAssertHere</span><span>
+</span><a name="line-20"></a><span class="hs-comment">--   -- , ''EpFieldTEntrypointEq</span><span>
+</span><a name="line-21"></a><span class="hs-comment">--   -- , ''EpFieldTResolveOr</span><span>
+</span><a name="line-22"></a><span class="hs-comment">--   -- , ''EpFieldTResolvePair</span><span>
+</span><a name="line-23"></a><span class="hs-comment">--   [ ''EpFieldT</span><span>
+</span><a name="line-24"></a><span class="hs-comment">--   ])</span><span>
+</span><a name="line-25"></a><span>
+</span><a name="line-26"></a><span class="hs-comment">-- $(genPromotions</span><span>
+</span><a name="line-27"></a><span class="hs-comment">--   -- [ ''EpFieldTSym0</span><span>
+</span><a name="line-28"></a><span class="hs-comment">--   -- , ''EpFieldTSym1</span><span>
+</span><a name="line-29"></a><span class="hs-comment">--   -- , ''EpFieldTSym2</span><span>
+</span><a name="line-30"></a><span class="hs-comment">--   [ ''EpFieldTSym3</span><span>
+</span><a name="line-31"></a><span class="hs-comment">--   ])</span><span>
+</span><a name="line-32"></a><span>
+</span><a name="line-33"></a><span class="hs-comment">-- instance SingI x =&gt; SingI (EpFieldTSym3 x) where</span><span>
+</span><a name="line-34"></a><span class="hs-comment">--   sing =</span><span>
+</span><a name="line-35"></a><span>
+</span><a name="line-36"></a><span class="hs-comment">-- module Michelson.Typed.EntryPoints.Sing.Alg.Types.TH where</span><span>
+</span><a name="line-37"></a><span>
+</span><a name="line-38"></a><span class="hs-comment">-- genPromotions :: OptionsMonad q =&gt; [Name] -&gt; q [Dec]</span><span>
+</span><a name="line-39"></a><span>
+</span><a name="line-40"></a><span class="hs-comment">-- type family EpFieldT (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) (fieldName :: Symbol) :: ErrM TOpq where</span><span>
+</span><a name="line-41"></a><span>
+</span><a name="line-42"></a><span class="hs-comment">-- EpFieldTSym0 :: TAlg -&gt; SymAnn t -&gt; _</span><span>
+</span><a name="line-43"></a><span class="hs-comment">-- EpFieldTSym1 :: SymAnn t -&gt; _</span><span>
+</span><a name="line-44"></a><span class="hs-comment">-- EpFieldTSym2 :: EpPath -&gt; _</span><span>
+</span><a name="line-45"></a><span class="hs-comment">-- EpFieldTSym3 :: Symbol -&gt; ErrM TOpq</span><span>
+</span><a name="line-46"></a><span>
+</span><a name="line-47"></a></pre></body></html>

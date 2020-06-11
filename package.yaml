@@ -18,7 +18,7 @@ library:
     - fmt
     - morley
     - morley-prelude
-    - morley-ledgers
+    # - morley-ledgers
     - named
     - singletons
     - text
@@ -29,9 +29,18 @@ library:
     - constraints
     - binary
     # - lorentz-contracts
-    - morley-lorentz
+    - lorentz
     - generics-sop
     - sop-core
+    - first-class-families
+    - deepseq
+    - QuickCheck
+    - megaparsec
+    - aeson-pretty
+    - optparse-applicative
+    - lens
+    - template-haskell
+    - th-desugar
 
 executables:
   morley-sop:
@@ -46,7 +55,7 @@ executables:
       # - lorentz-contracts
       - morley
       - morley-prelude
-      - morley-ledgers
+      # - morley-ledgers
       - optparse-applicative
       - text
       - named
@@ -62,6 +71,8 @@ tests:
   morley-sop-test:
     <<: *test-common
 
+    main: Spec.hs
+
     dependencies:
       - containers
       - data-default
@@ -70,9 +81,10 @@ tests:
       - hspec-expectations
       - HUnit
       # - lorentz-contracts
+      - lorentz
       - morley
       - morley-prelude
-      - morley-ledgers
+      # - morley-ledgers
       - QuickCheck
       - singletons
       - tasty
@@ -87,4 +99,7 @@ tests:
       - aeson
       - text
       - memory
+      - constraints
+      - lens
+      - checkers
 

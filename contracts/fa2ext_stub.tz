@@ -1,0 +1,62 @@
+parameter
+  (or (or (or (pair %balance_of
+                 (contract %callback
+                    (list (pair (nat %balance) (pair %request (address %owner) (nat %token_id)))))
+                 (list %requests (pair (address %owner) (nat %token_id))))
+              (pair %is_operator
+                 (contract %callback
+                    (pair (bool %is_operator)
+                          (pair %operator
+                             (address %operator)
+                             (pair (address %owner) (or %tokens (unit :All_tokens %All_tokens) (set :Some_tokens %Some_tokens nat))))))
+                 (pair %operator
+                    (address %operator)
+                    (pair (address %owner) (or %tokens (unit :All_tokens %All_tokens) (set :Some_tokens %Some_tokens nat))))))
+          (or (pair %mint
+                 (pair (address %address) (nat %amount))
+                 (pair (string %symbol) (nat %token_id)))
+              (or (contract :callback %permissions_descriptor
+                     (pair (pair (option %custom (pair (option %config_api address) (string %tag)))
+                                 (or %operator
+                                    (unit %Operator_transfer_denied)
+                                    (unit %Operator_transfer_permitted)))
+                           (pair (or %receiver
+                                    (unit %Optional_owner_hook)
+                                    (or (unit %Owner_no_op) (unit %Required_owner_hook)))
+                                 (pair (or %self (unit %Self_transfer_denied) (unit %Self_transfer_permitted))
+                                       (or %sender
+                                          (unit %Optional_owner_hook)
+                                          (or (unit %Owner_no_op) (unit %Required_owner_hook)))))))
+                  (address :new_admin %set_administrator))))
+      (or (or (bool :is_paused %set_pause)
+              (pair %token_metadata
+                 (contract %callback
+                    (list (pair (nat %token_id)
+                                (pair (string %symbol)
+                                      (pair (string %name) (pair (nat %decimals) (map %extras string string)))))))
+                 (list %token_ids nat)))
+          (or (pair %total_supply
+                 (contract %callback (list (pair (nat %token_id) (nat %total_supply))))
+                 (list %token_ids nat))
+              (or (or (list :transfer_list %transfer
+                     (pair (address %from_) (pair (address %to_) (pair (nat %token_id) (nat %amount)))))
+                  (pair %single_transfer (address %from_) (pair (address %to_) (pair (nat %token_id) (nat %amount)))))
+                  (or (list :update_operators_list %update_operators
+                     (or (pair %Add_operator
+                            (address %owner)
+                            (pair (address %operator) (or %tokens (unit :All_tokens %All_tokens) (set :some_tokens %Some_tokens nat))))
+                         (pair %Remove_operator
+                            (address %owner)
+                            (pair (address %operator) (or %tokens (unit :All_tokens %All_tokens) (set :Some_tokens %Some_tokens nat))))))
+                     (or (pair %Add_operator
+                            (address %owner)
+                            (pair (address %operator) (or %tokens (unit :All_tokens %All_tokens) (set :Some_tokens %Some_tokens nat))))
+                         (pair %Remove_operator
+                            (address %owner)
+                            (pair (address %operator) (or %tokens (unit :All_tokens %All_tokens) (set :Some_tokens %Some_tokens nat))))))
+                  )))) ;
+storage unit;
+code { FAILWITH }
+
+
+# parameter (or (pair %single_transfer (address %from_) (pair (address %to_) (pair (nat %token_id) (nat %amount)))) (unit %stub));
