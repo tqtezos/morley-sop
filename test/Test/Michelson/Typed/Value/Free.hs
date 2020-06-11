@@ -1,3 +1,4 @@
+{-# OPTIONS -Wno-missing-export-lists #-}
 
 module Test.Michelson.Typed.Value.Free where
 import Michelson.Typed.Value.Free
@@ -10,11 +11,6 @@ import Lorentz.Value
 import Michelson.Typed.Scope
 
 import Data.Type.Equality
-import Data.String
-import Data.Function
-import Data.Functor
-import Control.Applicative
-import Control.Monad
 
 import Data.AltError
 import Data.Constraint.HasDict1

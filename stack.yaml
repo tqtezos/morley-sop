@@ -54,3 +54,9 @@ extra-deps:
 
 nix:
   shell-file: shell.nix
+
+# Fix "Could not get GHC version from Haddock"
+build:
+  haddock-arguments:
+    haddock-args:
+    - --optghc=-fdefer-type-errors

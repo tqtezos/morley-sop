@@ -1,12 +1,10 @@
 {-# LANGUAGE NoRebindableSyntax #-}
 
--- {-# OPTIONS -Wno-missing-monadfail-instances #-}
 {-# OPTIONS -Wno-unused-do-bind -Wno-orphans -Wno-missing-export-lists #-}
 
 module Lorentz.Contracts.Util where
 
 import Data.Char
--- import Data.Functor.Classes
 import GHC.TypeLits (KnownSymbol, symbolVal)
 import Prelude hiding (readEither, unlines, unwords)
 import Text.ParserCombinators.ReadP (ReadP)
@@ -14,14 +12,9 @@ import Text.Read
 import qualified Text.ParserCombinators.ReadP as P
 
 import Data.Aeson
--- import qualified Data.Aeson as Aeson
--- import qualified Data.Aeson.Encoding as Aeson
 import qualified Data.Text as T
 
 import Lorentz.Value
--- import Lorentz.Macro
--- import Lorentz.Constraints
--- import Michelson.Typed.Haskell.Value
 import Michelson.Typed.Instr (Instr)
 import Michelson.Typed.Value
 import Named
@@ -30,9 +23,7 @@ import Tezos.Crypto
 import qualified Tezos.Crypto.Ed25519 as Ed25519
 import qualified Tezos.Crypto.Secp256k1 as Secp256k1
 import qualified Tezos.Crypto.P256 as P256
--- import qualified Crypto.PubKey.Ed25519 as Ed25519
 
--- deriving instance Read KeyHash
 
 instance IsoValue (Value' Instr t) where
   type ToT (Value' Instr t) = t
