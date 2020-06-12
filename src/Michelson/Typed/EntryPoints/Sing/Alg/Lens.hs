@@ -33,9 +33,6 @@ import Data.Singletons.Prelude.Show
 import Data.Singletons.Prelude.Tuple
 import qualified Data.Text as T
 
-trace4 :: String -> a -> a
-trace4 = flip const -- trace . fromString -- flip const
-
 -- | `unwrapSing` then `fromSing`, with `Text` to `String` conversion
 fromUnwrapSing :: forall (x :: [Symbol]). WrappedSing x -> [String]
 fromUnwrapSing = fmap (fromString . T.unpack) . fromSing . unwrapSing

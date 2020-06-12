@@ -61,11 +61,6 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
 
-
--- traceShow' :: Show a => a -> b -> b
-traceShow' :: a -> b -> b
-traceShow' = flip const -- trace . fromString . ("\n" <>) . show
-
 parseNS :: forall a m (f :: a -> Type) (xs :: [a]). (HasDict1 a, Alternative m, SingI xs)
   => (String -> m Void)
   -> (forall (x :: a). SingI x => m (f x))
@@ -104,7 +99,7 @@ parseEpField :: forall f t ann epPath fieldName. (Applicative f, SingI t, SingI 
   => Parser (EpField f t ann epPath fieldName)
 parseEpField =
   withDict1 (sEpFieldT @Symbol @ErrM (sing @t) (sing @ann) (sing @epPath) (sing @fieldName)) $
-  EpField (sing @fieldName) . join traceShow' <$>
+  EpField (sing @fieldName) <$>
   parseRunAltE
     (pure $ WrapSing sing)
     (Comp1 . pure <$> parseValueOpq (fromMaybe "%unnamed" $ T.unpack <$> fromSing (sing @fieldName)))
@@ -114,8 +109,6 @@ parseEpFields :: forall f t ann epPath. (Applicative f, SingI t, SingI ann, Sing
   => Mod CommandFields (EpFields f t ann epPath)
 parseEpFields =
   command (show $ fromSing (sing @epPath)) . flip info mempty $
-  traceShow' (fromSing $ sListEToAltE $ sEpFieldNames (sing @t) (sing @ann) (sing @epPath)) $
-  -- withDict1 (sEpFieldNames (sing @ann) (sing @epPath)) $
   EpFields (sing @epPath) <$>
   parseRunAltE @_ @WrappedSing @_ @Parser @(EpFieldNamesErrM t ann epPath)
     (pure $ WrapSing sing)
@@ -147,7 +140,6 @@ parseEpValue ::
      forall t ann. (SingI t, SingI ann)
   => (String, Parser (EpValue t ann))
 parseEpValue =
-  traceShow' (fromSing $ sEpPaths (sing @ann)) $
   withDict1 (sEpPaths (sing @ann)) $
   (,)
   -- "\n[parseEpValue]\n" $
@@ -181,8 +173,6 @@ parsePrintValue :: forall t (ann :: SymAnn t). (SingI t, SingI ann)
   => Bool
   -> (String, Parser (AltE [String] TL.Text))
 parsePrintValue forceSingleLine =
-  traceShow' (fromSing $ singFromTAlg (sing @t)) $
-  traceShow' (fromSing $ (sing @ann)) $
   withDict1 (singFromTAlg (sing @t)) $
   assertOpAbsense (singFromTAlg (sing @t)) $
   (fmap . fmap) (printTypedValue forceSingleLine) <$>
@@ -197,17 +187,10 @@ parsePrintValueFromContractSource forceSingleLine contractSrc =
   case parseSomeContractRaw (Left . unlines) contractSrc of
     Left err -> error . fromString $ unlines ["parsePrintValueFromContractSource: error parsing/typechecking contract:", err]
     Right (TypeCheck.SomeContract (FullContract _ (ParamNotesUnsafe paramNotes' :: ParamNotes cp) _)) ->  -- caseAltE
-      -- (flip const) (fromString . ("\nparsed type:\n" <>) . show . fromSing $ sing @cp) $
-      -- (flip const) (fromString . ("\nparsed annotation:\n" <>) . show $ paramNotes') $
       case toSing (Michelson.annotatedFromNotes paramNotes') of
         SomeSing (sann :: Sing ann) ->
           let sann' =  (sUniqifyEpPathsSimpler (singToAnnotatedAlg sann)) in
             withDict1 (singToTAlg (sing @cp)) $
-            -- (flip const) (fromString . ("\npre-uniqified annotation:\n" <>) . show $ fromSing (singToAnnotatedAlg sann)) $
-            -- (flip const) (fromString . ("\nuniqified annotation:\n" <>) . show $ fromSing (sUniqifyEpPathsSimpler (singToAnnotatedAlg sann))) $
-            -- traceShow ("original" :: String, fromSing (singToAnnotatedAlg sann)) $
-            -- -- traceShow' ("next" :: String, fromSing (sUniqifyEpPathsSimpler (singToAnnotatedAlg sann))) $
-            -- traceShow ("next_uniquified" :: String, fromSing sann') $
             withDict1 sann' $
             parsePrintValue @(ToTAlg cp) @((UniqifyEpPathsSimpler (ToAnnotatedAlg ann))) forceSingleLine
 

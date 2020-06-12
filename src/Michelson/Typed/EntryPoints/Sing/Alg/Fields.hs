@@ -32,9 +32,6 @@ import Data.Singletons
 import Data.Singletons.Prelude.List
 import Data.Constraint
 
-trace3 :: String -> a -> a
-trace3 = flip const -- trace . fromString -- flip const
-
 data EpFields (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) where
   EpFields :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). ()
     => Sing epPath
@@ -165,20 +162,7 @@ lensEpFields st sann sepPath fs xs =
             SOP.hcfoldMap
               (Proxy @SingI)
               (\(EpField sfieldName ws) -> Endo $
-                \ss ->
-                  trace3
-                    (unlines
-                       [ "epPath"
-                       , fromString . show $ fromSing sepPath
-                       , "fieldName"
-                       , fromString . show $ fromSing sfieldName
-                       , "before"
-                       , fromString $ show ss
-                       , "after"
-                       , fromString $
-                         show (((lensEpFieldT st sann sepPath sfieldName) `set` ws) ss)
-                       ]) $
-                  ((lensEpFieldT st sann sepPath sfieldName) `set` ws) ss
+                lensEpFieldT st sann sepPath sfieldName `set` ws
               )
               zs
   ) <$>
