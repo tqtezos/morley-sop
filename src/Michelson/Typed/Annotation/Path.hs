@@ -56,8 +56,10 @@ ppPath =
 
 -- deriving instance Show a => Show (Path a)
 
-instance Show (Path Text) where
-  show = T.unpack . ppPath
+instance Show a => Show (Path a) where
+  show = T.unpack . ppPath . fmap (stripQuotes . T.pack . show)
+    where
+      stripQuotes xs = fromMaybe xs (("\"" `T.stripPrefix` xs) >>= ("\"" `T.stripSuffix`))
 --
 --   showsPrec _ Here = showString ""
 --

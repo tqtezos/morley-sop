@@ -10,17 +10,17 @@ import GHC.Generics ((:.:)(..))
 import Data.Functor.Classes
 
 import Control.AltError
+import Control.AltError.TH
 import Data.AltError
 import Data.AltError.Run
+import Data.Singletons.WrappedSing
 
 import Michelson.Typed.Annotation.Path
-import Michelson.Typed.EntryPoints.Error
-
 import Michelson.Typed.Annotation.Sing.Alg
+import Michelson.Typed.EntryPoints.Error.TH
+import Michelson.Typed.EntryPoints.Sing.Alg.Types.TH
 import Michelson.Typed.T.Alg
 import Michelson.Typed.Value.Free
-import Michelson.Typed.EntryPoints.Sing.Alg.Types
-import Data.Singletons.WrappedSing
 
 import Data.Singletons
 import Data.Singletons.TypeLits
@@ -32,9 +32,6 @@ import Data.Singletons.Prelude.Maybe
 import Data.Singletons.Prelude.Show
 import Data.Singletons.Prelude.Tuple
 import qualified Data.Text as T
-
-trace4 :: String -> a -> a
-trace4 = flip const -- trace . fromString -- flip const
 
 -- | `unwrapSing` then `fromSing`, with `Text` to `String` conversion
 fromUnwrapSing :: forall (x :: [Symbol]). WrappedSing x -> [String]

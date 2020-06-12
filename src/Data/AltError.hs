@@ -21,7 +21,6 @@ import Data.Singletons.TypeLits
 import Data.Singletons.Prelude.Bool
 import Data.Singletons.Prelude.Show
 import Data.Singletons.Prelude.Monad
-import Data.Singletons.Prelude.Function
 import Data.Singletons.TH
 
 -- | `Either` with two error values:
@@ -53,19 +52,6 @@ instance Show str => Show1 (AltE str) where
 instance (Show str, Show a) => Show (AltE str a) where
   showsPrec = showsPrec1
 
-$(singletons [d|
-  caseAltE :: (Bool -> str -> r) -> (a -> r) -> AltE str a -> r
-  caseAltE _ g (PureAltE x) = g x
-  caseAltE f _ (AltThrow err) = f False err
-  caseAltE f _ (AltExcept err) = f True err
-
-  isPureAltE :: AltE str a -> Bool
-  isPureAltE (PureAltE _) = True
-  isPureAltE (AltThrow _) = False
-  isPureAltE (AltExcept _) = False
-
-  |])
-
 instance (HasDict1 str, HasDict1 a) => HasDict1 (AltE str a) where
   evidence1 = $(gen_evidence1 ''AltE)
 
@@ -73,7 +59,19 @@ instance (HasDict1 str, HasDict1 a) => HasDict1 (AltE str a) where
 -- Applicative and AltError
 ---------------------------
 
-instance Applicative (AltE [String]) where
+-- | Match on `AltE`'s cases
+caseAltE :: (Bool -> str -> r) -> (a -> r) -> AltE str a -> r
+caseAltE _ g (PureAltE x) = g x
+caseAltE f _ (AltThrow err) = f False err
+caseAltE f _ (AltExcept err) = f True err
+
+-- | Is it `PureAltE`?
+isPureAltE :: AltE str a -> Bool
+isPureAltE (PureAltE _) = True
+isPureAltE (AltThrow _) = False
+isPureAltE (AltExcept _) = False
+
+instance (IsString s, Eq s) => Applicative (AltE [s]) where
   pure = PureAltE
 
   (<*>) fs xs =
@@ -81,20 +79,20 @@ instance Applicative (AltE [String]) where
       (\isFailFs errFs ->
         caseAltE
           (combineThrowAlt isFailFs errFs)
-          (const (throwAlt isFailFs errFs))
+          (\_ -> throwAlt isFailFs errFs)
           xs
       )
       (\f -> caseAltE throwAlt (PureAltE . f) xs)
       fs
 
 
-instance AltError [String] (AltE [String]) where
+instance (IsString s, Eq s) => AltError [s] (AltE [s]) where
   (<||>) xs ys =
     caseAltE
       (\isFailXs errXs ->
         caseAltE
           (combineThrowAlt isFailXs errXs)
-          (\y -> bool
+          (\y -> bool_
             (PureAltE y)
             (AltExcept errXs)
             isFailXs
@@ -104,12 +102,12 @@ instance AltError [String] (AltE [String]) where
       (\x ->
         caseAltE
           (\isFailYs errYs ->
-            bool
+            bool_
               (PureAltE x)
               (AltExcept errYs)
               isFailYs
           )
-          (\y -> AltExcept ["(<||>) (PureAltE _) (PureAltE _):", show_ x, show_ y])
+          (\y -> AltExcept [fromString "(<||>) (PureAltE _) (PureAltE _):", fromString (show_ x), fromString (show_ y)])
           ys
       )
       xs
@@ -117,62 +115,6 @@ instance AltError [String] (AltE [String]) where
   altErr = AltThrow
   altFail = AltExcept
 
-instance Monad (AltE [String]) where
+instance (IsString s, Eq s) => Monad (AltE [s]) where
   (>>=) = flip (caseAltE throwAlt)
-
-------------------------------------------------
--- Singletons (Symbol): Applicative and AltError
-------------------------------------------------
-
-$(singletonsOnly [d|
-
-  instance Applicative (AltE [Symbol]) where
-    pure = PureAltE
-
-    (<*>) fs xs =
-      caseAltE
-        (\isFailFs errFs ->
-          caseAltE
-            (combineThrowAlt isFailFs errFs)
-            (\_ -> throwAlt isFailFs errFs)
-            xs
-        )
-        (\f -> caseAltE throwAlt (PureAltE . f) xs)
-        fs
-
-
-  instance AltError [Symbol] (AltE [Symbol]) where
-    (<||>) xs ys =
-      caseAltE
-        (\isFailXs errXs ->
-          caseAltE
-            (combineThrowAlt isFailXs errXs)
-            (\y -> bool_
-              (PureAltE y)
-              (AltExcept errXs)
-              isFailXs
-            )
-            ys
-        )
-        (\x ->
-          caseAltE
-            (\isFailYs errYs ->
-              bool_
-                (PureAltE x)
-                (AltExcept errYs)
-                isFailYs
-            )
-            (\y -> AltExcept ["(<||>) (PureAltE _) (PureAltE _):", show_ x, show_ y])
-            ys
-        )
-        xs
-
-    altErr = AltThrow
-    altFail = AltExcept
-
-  instance Monad (AltE [Symbol]) where
-    (>>=) = flip (caseAltE throwAlt)
-
-
-  |])
 

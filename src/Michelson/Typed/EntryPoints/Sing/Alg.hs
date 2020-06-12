@@ -8,7 +8,6 @@ module Michelson.Typed.EntryPoints.Sing.Alg where
 
 import Control.Monad
 import Data.Kind
-import Data.List
 import Data.Functor.Classes
 import Prelude hiding (unwords, unlines, show, set, fail)
 import GHC.Generics ((:.:)(..))
@@ -20,9 +19,8 @@ import Michelson.Typed.Annotation.Path
 
 import Michelson.Typed.T.Alg
 import Michelson.Typed.Value.Free
-import Michelson.Typed.EntryPoints.Sing.Alg.Types
+import Michelson.Typed.EntryPoints.Sing.Alg.Types.TH
 import Michelson.Typed.EntryPoints.Sing.Alg.Fields
-import Michelson.Typed.EntryPoints.Sing.Alg.Paths
 import Michelson.Typed.EntryPoints.Sing.Alg.Field
 
 import Control.Lens.Setter
@@ -38,9 +36,6 @@ import Data.Singletons.WrappedSing
 
 import Data.SOP (I(..), K(..), NP, NS)
 import qualified Data.SOP as SOP
-
-trace2 :: String -> a -> a
-trace2 = flip const -- trace . fromString -- flip const
 
 -- after conversion, likely want to expose top-layer NS, currently encoded as NP (f :.: _):
 -- (f a -> m (g a)) -> NP f xs -> m (NS g xs)
@@ -85,8 +80,7 @@ lensEpValueF st sann fs xs =
     SOP.hcfoldMap
       (Proxy @SingI)
       (\zs@(EpFields sepPath _) -> Endo $
-        \zs' ->
-          trace2 (unlines ["lensEpValueF", "path", show (fromSing sepPath), "before", show zs', "after", show ((lensEpFields st sann sepPath `set` zs) zs')]) $ (lensEpFields st sann sepPath `set` zs) zs'
+        lensEpFields st sann sepPath `set` zs
       )
       ys
   ) <$>
@@ -138,20 +132,18 @@ emptyNP =
 nsToNP :: forall a (f :: Type -> Type) (g :: a -> Type) (xs :: [a]). (HasDict1 a, SingKind a, Show (Demote a), AltError [String] f, forall x. Show x => Show (f x), forall x. SingI x => Show (g x), SingI xs, SOP.SListI xs)
   => NS g xs
   -> NP (f :.: g) xs
-nsToNP xss@(SOP.Z xs) =
+nsToNP (SOP.Z xs) =
   case sing @xs of
-    SCons sx sxs -> withDict1 sxs $
+    SCons _sx sxs -> withDict1 sxs $
       withDict (prfAllShow @_ @g $ sing @xs) $
       withDict (prfAllShow @_ @(f :.: g) $ sing @xs) $
-      (\yss -> (trace2 . fromString . ("\n  nsToNP: SOP.Z\n"++) $ withDict1 sx $ show (xss, yss)) yss) $
       Comp1 (pure xs)
-      SOP.:* (\yss -> (trace2 . fromString . ("\n  nsToNP: SOP.Z\n"++) $ withDict1 sx $ show (xss, yss)) yss) emptyNP
-nsToNP xss@(SOP.S xs) =
+      SOP.:* emptyNP
+nsToNP (SOP.S xs) =
   case sing @xs of
     SCons _ sxs -> withDict1 sxs $
       withDict (prfAllShow @_ @g $ sing @xs) $
       withDict (prfAllShow @_ @(f :.: g) $ sing @xs) $
-      (\yss -> (trace2 . fromString . ("\n  nsToNP: SOP.S\n"++) . show $ (xss, yss)) yss ) $
       Comp1 (altErr . ("nsToNP SCons: " :) . (:[]) . show . fromSing $ sing @xs)
       SOP.:* nsToNP xs
 
@@ -174,12 +166,9 @@ runEpValue st sann xs =
   withDict1 sann $
   withDict (prfAllShow @_ @(EpFields f t ann) (sEpPaths sann)) $
   id $ do
-    let ys = join (trace2 . fromString . ("\n  runEpValue: after toEpValueF:\n"++) . show) $ toEpValueF st sann xs
+    let ys = toEpValueF st sann xs
     zs <-
-      join
-        (trace2 . fromString . ("\n  runEpValue:\n" ++) . flip (showsPrec1 0) "") $
       runValueAlgT $
-      join (trace2 . fromString . ("\n  runEpValue: after lensEpValueF:\n" ++) . show) $
       set (lensEpValueF st sann) ys $ altErrValueAlgT ["runEpValue", show $ fromSing st] st
     return $ fromValueAlg zs
 
@@ -218,9 +207,7 @@ toEpValueF st sann (EpValue xs) =
   withDict (prfAllShowEpFields st sann $ sing @(EpPaths ann)) $
   EpValueF @f @t @ann $
   SOP.hcmap (Proxy @SingI) (wrapEpFields st sann . unComp1) $
-  join (trace2 . fromString . ("\n  after nsToNP:\n"++) . unlines . fmap ("  "++) . SOP.hcollapse . SOP.hcmap (Proxy @SingI) (\(Comp1 ys) -> SOP.K $ showsPrec1 0 ys "")) $
   nsToNP @EpPath @f $
-  join (trace2 . fromString . ("\n  before nsToNP:\n"++) . show) $
   xs
 
 -- | Extract the fields from an `EpValue`

@@ -19,7 +19,7 @@ import Michelson.Typed.Annotation.Path
 
 import Michelson.Typed.T.Alg
 import Michelson.Typed.Value.Free
-import Michelson.Typed.EntryPoints.Sing.Alg.Types
+import Michelson.Typed.EntryPoints.Sing.Alg.Types.TH
 import Michelson.Typed.EntryPoints.Sing.Alg.Field
 import Michelson.Typed.EntryPoints.Sing.Alg.Lens
 import Data.Constraint.HasDict1
@@ -31,9 +31,6 @@ import qualified Data.SOP as SOP
 import Data.Singletons
 import Data.Singletons.Prelude.List
 import Data.Constraint
-
-trace3 :: String -> a -> a
-trace3 = flip const -- trace . fromString -- flip const
 
 data EpFields (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath) where
   EpFields :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath). ()
@@ -165,25 +162,12 @@ lensEpFields st sann sepPath fs xs =
             SOP.hcfoldMap
               (Proxy @SingI)
               (\(EpField sfieldName ws) -> Endo $
-                \ss ->
-                  trace3
-                    (unlines
-                       [ "epPath"
-                       , fromString . show $ fromSing sepPath
-                       , "fieldName"
-                       , fromString . show $ fromSing sfieldName
-                       , "before"
-                       , fromString $ show ss
-                       , "after"
-                       , fromString $
-                         show (((lensEpFieldT st sann sepPath sfieldName) `set` ws) ss)
-                       ]) $
-                  ((lensEpFieldT st sann sepPath sfieldName) `set` ws) ss
+                lensEpFieldT st sann sepPath sfieldName `set` ws
               )
               zs
   ) <$>
   (fs . EpFields sepPath $
-    singToRunAltE
+    pureRunAltE
       WrapSing
       (\sxs ->
         withDict (singAllSingI sxs) $
