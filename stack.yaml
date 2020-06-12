@@ -60,3 +60,4 @@ build:
   haddock-arguments:
     haddock-args:
     - --optghc=-fdefer-type-errors
+    - --odir=docs
