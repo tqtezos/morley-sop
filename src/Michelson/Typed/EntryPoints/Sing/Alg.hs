@@ -20,9 +20,8 @@ import Michelson.Typed.Annotation.Path
 
 import Michelson.Typed.T.Alg
 import Michelson.Typed.Value.Free
-import Michelson.Typed.EntryPoints.Sing.Alg.Types
+import Michelson.Typed.EntryPoints.Sing.Alg.Types.TH
 import Michelson.Typed.EntryPoints.Sing.Alg.Fields
-import Michelson.Typed.EntryPoints.Sing.Alg.Paths
 import Michelson.Typed.EntryPoints.Sing.Alg.Field
 
 import Control.Lens.Setter

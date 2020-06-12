@@ -12,7 +12,6 @@ import Prelude hiding (show)
 import Text.Show
 
 import Data.Singletons
-import Data.Singletons.Prelude
 import Data.Singletons.TH
 
 import Michelson.Typed.T (CT(..))
@@ -33,21 +32,6 @@ data AnnotatedAlg a (t :: TAlg) where
 
   ATOpq       :: AnnotatedOpq a t -> AnnotatedAlg a ('TOpq t)
 
-$(genPromotions [''AnnotatedAlg])
-
-$(singletons [d|
-  instance Show a => Show (AnnotatedAlg a t) where
-    showsPrec d (ATPair x1 x2 x3 x4 x5) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATPair" d (x1, x2, x3, x4, x5)
-    showsPrec d (ATOr x1 x2 x3 x4 x5) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATOr" d (x1, x2, x3, x4, x5)
-    showsPrec d (ATOpq x1) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATOpq" d x1
-
-  traverseAnnotatedAlg :: Applicative f => (a -> f b) -> AnnotatedAlg a t -> f (AnnotatedAlg b t)
-  traverseAnnotatedAlg fs (ATPair x1 x2 x3 x4 x5) = ATPair <$> fs x1 <*> fs x2 <*> fs x3 <*> traverseAnnotatedAlg fs x4 <*> traverseAnnotatedAlg fs x5
-  traverseAnnotatedAlg fs (ATOr x1 x2 x3 x4 x5) = ATOr <$> fs x1 <*> fs x2 <*> fs x3 <*> traverseAnnotatedAlg fs x4 <*> traverseAnnotatedAlg fs x5
-  traverseAnnotatedAlg fs (ATOpq x1) = ATOpq <$> traverseAnnotatedOpq fs x1
-
-  |])
-
 data instance Sing :: AnnotatedAlg a t -> Type where
   SATPair      :: forall a s t (ta :: a) (tb :: a) (tc :: a) (xs :: AnnotatedAlg a s) (ys :: AnnotatedAlg a t). Sing ta -> Sing tb -> Sing tc -> Sing xs -> Sing ys -> Sing ('ATPair ta tb tc xs ys)
   SATOr        :: forall a s t (ta :: a) (tb :: a) (tc :: a) (xs :: AnnotatedAlg a s) (ys :: AnnotatedAlg a t). Sing ta -> Sing tb -> Sing tc -> Sing xs -> Sing ys -> Sing ('ATOr ta tb tc xs ys)
@@ -60,7 +44,6 @@ instance (SingI ta,  SingI tb,  SingI tc,  SingI xs,  SingI ys) => SingI ('ATOr 
   sing = SATOr sing sing sing sing sing
 instance (SingI xs) => SingI ('ATOpq xs) where
   sing = SATOpq sing
-
 
 instance SingKind a => SingKind (AnnotatedAlg a t) where
   type Demote (AnnotatedAlg a t) = AnnotatedAlg (Demote a) t
@@ -84,25 +67,43 @@ instance SingKind a => SingKind (AnnotatedAlg a t) where
       SomeSing sxs ->
         SomeSing $
           SATOpq sxs
+$(genPromotions [''AnnotatedAlg])
 
 instance HasDict1 a => HasDict1 (AnnotatedAlg a t) where
   evidence1 = $(gen_evidence1 ''AnnotatedAlg)
 
+-- $(singletons [d|
+-- | See `Michelson.Typed.Annotation.Sing.Alg.TH` for singletons
+instance Show a => Show (AnnotatedAlg a t) where
+  showsPrec d (ATPair x1 x2 x3 x4 x5) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATPair" d (x1, x2, x3, x4, x5)
+  showsPrec d (ATOr x1 x2 x3 x4 x5) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATOr" d (x1, x2, x3, x4, x5)
+  showsPrec d (ATOpq x1) = (\sp name d' x -> showParen (d' > 10) $ showString name . showString " " . sp 11 x) showsPrec "ATOpq" d x1
 
+-- | `traverse` the annotation in `AnnotatedAlg`
+--
+-- See `Michelson.Typed.Annotation.Sing.Alg.TH` for singletons
+traverseAnnotatedAlg :: Applicative f => (a -> f b) -> AnnotatedAlg a t -> f (AnnotatedAlg b t)
+traverseAnnotatedAlg fs (ATPair x1 x2 x3 x4 x5) = ATPair <$> fs x1 <*> fs x2 <*> fs x3 <*> traverseAnnotatedAlg fs x4 <*> traverseAnnotatedAlg fs x5
+traverseAnnotatedAlg fs (ATOr x1 x2 x3 x4 x5) = ATOr <$> fs x1 <*> fs x2 <*> fs x3 <*> traverseAnnotatedAlg fs x4 <*> traverseAnnotatedAlg fs x5
+traverseAnnotatedAlg fs (ATOpq x1) = ATOpq <$> traverseAnnotatedOpq fs x1
+
+-- | Example `TAlg`
 type ExampleTAlg
    = 'TPair ('TOpq ('Tc 'CNat)) ('TPair ('TOpq ('Tc 'CAddress)) ('TOpq ('Tc 'CNat)))
 
+-- | Example `AnnotatedAlg`
 type ExampleTAnn
    = 'ATPair "" "balance" "request" ('ATOpq ('ATc "")) ('ATPair "" "owner" "token_id" ('ATOpq ('ATc "")) ('ATOpq ('ATc "")))
 
----- | `sFieldToTypeAnn` applied to `ExampleTAnn`:
-----
----- @
-----  exampleFieldToTypeAnn = show . fromSing $ `sFieldToTypeAnn` @Symbol @`ExampleTAlg` (sing @`ExampleTAnn`)
----- @
---exampleFieldToTypeAnn :: String
---exampleFieldToTypeAnn = show . fromSing $ sFieldToTypeAnn @Symbol @ExampleTAlg (sing @ExampleTAnn)
+------ | `sFieldToTypeAnn` applied to `ExampleTAnn`:
+------
+------ @
+------  exampleFieldToTypeAnn = show . fromSing $ `sFieldToTypeAnn` @Symbol @`ExampleTAlg` (sing @`ExampleTAnn`)
+------ @
+----exampleFieldToTypeAnn :: String
+----exampleFieldToTypeAnn = show . fromSing $ sFieldToTypeAnn @Symbol @ExampleTAlg (sing @ExampleTAnn)
 
+-- | `singletons` doesn't work on this, because of `ToTAlg` in the result
 type family ToAnnotatedAlg (ann :: Annotated a t) :: AnnotatedAlg a (ToTAlg t) where
   ToAnnotatedAlg ('Michelson.ATc ta) = 'ATOpq ('ATc ta)
   ToAnnotatedAlg ('Michelson.ATKey ta) = 'ATOpq ('ATKey ta)
@@ -138,6 +139,7 @@ singToAnnotatedAlg (Michelson.SATLambda ta xs ys) = SATOpq (SATLambda ta xs ys)
 singToAnnotatedAlg (Michelson.SATMap ta tb xs) = SATOpq (SATMap ta tb xs)
 singToAnnotatedAlg (Michelson.SATBigMap ta tb xs) = SATOpq (SATBigMap ta tb xs)
 
+-- | Inverse to `ToAnnotatedAlg`
 type family FromAnnotatedAlg (ann :: AnnotatedAlg a t) :: Annotated a (FromTAlg t) where
   FromAnnotatedAlg ('ATOpq ('ATc ta)) = ('Michelson.ATc ta)
   FromAnnotatedAlg ('ATOpq ('ATKey ta)) = ('Michelson.ATKey ta)

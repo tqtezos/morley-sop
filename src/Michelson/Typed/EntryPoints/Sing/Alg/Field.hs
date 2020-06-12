@@ -20,7 +20,7 @@ import Michelson.Typed.Annotation.Path
 
 import Michelson.Typed.T.Alg
 import Michelson.Typed.Value.Free
-import Michelson.Typed.EntryPoints.Sing.Alg.Types
+import Michelson.Typed.EntryPoints.Sing.Alg.Types.TH
 import Michelson.Typed.EntryPoints.Sing.Alg.Lens
 import Data.Constraint.HasDict1
 import Data.Singletons.WrappedSing
@@ -62,7 +62,7 @@ data EpField (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath :: EpPath
 
 instance (forall t'. SingI t' => Show (f (ValueOpq t')), SingI t, SingI ann, SingI epPath) => Show (EpField f t ann epPath fieldName) where
   showsPrec d (EpField sfieldName xs) =
-    withDict1 (sEpFieldT @ErrM (sing @t) (sing @ann) (sing @epPath) sfieldName) $
+    withDict1 (sEpFieldT @Symbol @ErrM (sing @t) (sing @ann) (sing @epPath) sfieldName) $
     showsBinaryWith showsPrec showsPrec "EpField" d (fromSing sfieldName) xs
 
 -- | Expose the effects of @f@ at the top level of an `EpField`
@@ -84,7 +84,7 @@ wrapEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath 
   -> EpField f t ann epPath fieldName
 wrapEpField st sann xs =
   EpField (sing @fieldName) $
-  case sEpFieldT @ErrM st sann (sing @epPath) (sing @fieldName) of
+  case sEpFieldT @Symbol @ErrM st sann (sing @epPath) (sing @fieldName) of
     SAltThrow serr -> RunAltThrow $ WrapSing serr
     SAltExcept serr -> RunAltExcept $ WrapSing serr
     SPureAltE _sResult -> RunPureAltE $ Comp1 $
@@ -101,7 +101,7 @@ emptyEpField :: forall (f :: Type -> Type) (t :: TAlg) (ann :: SymAnn t) (epPath
   -> EpField f t ann epPath fieldName
 emptyEpField st sann sepPath sfieldName =
   EpField sfieldName $
-  case sEpFieldT @ErrM st sann sepPath sfieldName of
+  case sEpFieldT @Symbol @ErrM st sann sepPath sfieldName of
     SAltThrow serr -> RunAltThrow $ WrapSing serr
     SAltExcept serr -> RunAltExcept $ WrapSing serr
     SPureAltE sResult -> RunPureAltE $ Comp1 . altErr . ("emptyEpField SPureAltE: " :) . (: []) . show $ fromSing sResult
@@ -116,7 +116,7 @@ transEpField :: forall (f :: Type -> Type) (g :: Type -> Type) (t :: TAlg) (ann 
   -> EpField g t ann epPath fieldName
 transEpField trans' st sann sepPath (EpField sfieldName xs) =
   EpField sfieldName $
-  case (sEpFieldT @ErrM st sann sepPath sfieldName, xs) of
+  case (sEpFieldT @Symbol @ErrM st sann sepPath sfieldName, xs) of
     (SAltThrow _, RunAltThrow xss) -> RunAltThrow xss
     (SAltExcept _, RunAltExcept xss) -> RunAltExcept xss
     (SPureAltE st', RunPureAltE (Comp1 xss)) -> withDict1 st' $ RunPureAltE $ Comp1 $ trans' xss

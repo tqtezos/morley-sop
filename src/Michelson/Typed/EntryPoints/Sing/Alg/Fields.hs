@@ -19,7 +19,7 @@ import Michelson.Typed.Annotation.Path
 
 import Michelson.Typed.T.Alg
 import Michelson.Typed.Value.Free
-import Michelson.Typed.EntryPoints.Sing.Alg.Types
+import Michelson.Typed.EntryPoints.Sing.Alg.Types.TH
 import Michelson.Typed.EntryPoints.Sing.Alg.Field
 import Michelson.Typed.EntryPoints.Sing.Alg.Lens
 import Data.Constraint.HasDict1
@@ -183,7 +183,7 @@ lensEpFields st sann sepPath fs xs =
               zs
   ) <$>
   (fs . EpFields sepPath $
-    singToRunAltE
+    pureRunAltE
       WrapSing
       (\sxs ->
         withDict (singAllSingI sxs) $

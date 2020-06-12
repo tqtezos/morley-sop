@@ -14,7 +14,7 @@ import Data.Type.Equality
 import Data.Constraint.HasDict1
 import Michelson.Typed.Annotation.Sing
 import Michelson.Typed.Annotation.Sing.Alg
-import Michelson.Typed.EntryPoints.Sing.Alg.Paths
+import Michelson.Typed.EntryPoints.Sing.Alg.Types.TH
 import Michelson.Typed.T.Alg
 import Michelson.Typed.T.Sing
 import Michelson.Typed.Value.Arbitrary ()

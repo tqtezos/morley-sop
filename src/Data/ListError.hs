@@ -20,12 +20,6 @@ import Control.AltError
 import Data.AltError
 import Data.Constraint.HasDict1
 
-import Data.Singletons.TypeLits
-import Data.Singletons.Prelude.Bool
-import Data.Singletons.Prelude.Either
-import Data.Singletons.Prelude.List
-import Data.Singletons.Prelude.Semigroup
-import Data.Singletons.Prelude.Function
 import Data.Singletons.TH
 
 -- | Features:
@@ -55,21 +49,6 @@ instance Show str => Show1 (ListE str) where
 instance (Show str, Show a) => Show (ListE str a) where
   showsPrec = showsPrec1
 
-$(singletons [d|
-  isPureListE :: ListE str a -> Bool
-  isPureListE (ListE (Right [])) = False
-  isPureListE (ListE (Right (_:_))) = True
-  isPureListE (ListE (Left _)) = False
-
-  |])
-
-$(singletonsOnly [d|
-  listEToErrM :: ListE [Symbol] a -> ErrM [a]
-  listEToErrM (ListE (Left err)) = altFail err
-  listEToErrM (ListE (Right xs)) = pure xs
-
-  |])
-
 instance (HasDict1 str, HasDict1 a) => HasDict1 (ListE str a) where
   evidence1 = $(gen_evidence1 ''ListE)
 
@@ -77,12 +56,27 @@ instance (HasDict1 str, HasDict1 a) => HasDict1 (ListE str a) where
 -- Applicative and ListError
 ---------------------------
 
-instance Applicative (ListE [String]) where
+------------------------------------------------
+-- Singletons (Symbol): Applicative and ListError
+------------------------------------------------
+
+-- | Is it `pure` for `ListE`?
+isPureListE :: ListE str a -> Bool
+isPureListE (ListE (Right [])) = False
+isPureListE (ListE (Right (_:_))) = True
+isPureListE (ListE (Left _)) = False
+
+-- | Convert `ListE` to `AltE`
+listEToAltE :: forall s a. (IsString s, Eq s) => ListE [s] a -> AltE [s] [a]
+listEToAltE (ListE (Left err)) = altFail err
+listEToAltE (ListE (Right xs)) = pure xs
+
+instance Applicative (ListE [s]) where
   pure = ListE . pure . pure
 
   (<*>) (ListE fs) (ListE xs) = ListE (liftA2 (<*>) fs xs)
 
-instance AltError [String] (ListE [String]) where
+instance AltError [s] (ListE [s]) where
   (<||>) (ListE (Left xs)) (ListE (Left ys)) = ListE (Left (xs <> ys))
   (<||>) (ListE (Left xs)) (ListE (Right _)) = ListE (Left xs)
   (<||>) (ListE (Right _)) (ListE (Left ys)) = ListE (Left ys)
@@ -90,26 +84,4 @@ instance AltError [String] (ListE [String]) where
 
   altErr = ListE . Right . const []
   altFail = ListE . Left
-
-------------------------------------------------
--- Singletons (Symbol): Applicative and ListError
-------------------------------------------------
-
-$(singletonsOnly [d|
-
-  instance Applicative (ListE [Symbol]) where
-    pure = ListE . pure . pure
-
-    (<*>) (ListE fs) (ListE xs) = ListE (liftA2 (<*>) fs xs)
-
-  instance AltError [Symbol] (ListE [Symbol]) where
-    (<||>) (ListE (Left xs)) (ListE (Left ys)) = ListE (Left (xs <> ys))
-    (<||>) (ListE (Left xs)) (ListE (Right _)) = ListE (Left xs)
-    (<||>) (ListE (Right _)) (ListE (Left ys)) = ListE (Left ys)
-    (<||>) (ListE (Right xs)) (ListE (Right ys)) = ListE (Right (xs <> ys))
-
-    altErr = ListE . Right . const []
-    altFail = ListE . Left
-
- |])
 

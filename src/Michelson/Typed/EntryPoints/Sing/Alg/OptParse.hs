@@ -27,7 +27,7 @@ import Michelson.Typed.Instr
 
 import Control.AltError
 import Data.AltError
-import Data.ListError
+import Data.ListError.TH
 import Data.AltError.Run
 import Data.Singletons.WrappedSing
 
@@ -36,8 +36,7 @@ import Michelson.Typed.EntryPoints.Sing.Alg
 -- import Michelson.Typed.EntryPoints.Sing.Alg.Aeson (assertOpAbsense) -- ExampleParam,
 import Michelson.Typed.EntryPoints.Sing.Alg.Field
 import Michelson.Typed.EntryPoints.Sing.Alg.Fields
-import Michelson.Typed.EntryPoints.Sing.Alg.Paths
-import Michelson.Typed.EntryPoints.Sing.Alg.Types
+import Michelson.Typed.EntryPoints.Sing.Alg.Types.TH
 import Michelson.Typed.T.Alg
 import Michelson.Typed.T.Sing (assertOpAbsense)
 import Michelson.Typed.Value.Free
@@ -46,6 +45,7 @@ import qualified Michelson.Typed.Annotation.Sing.Notes as Michelson
 
 
 import Data.Singletons
+import Data.Singletons.TypeLits (Symbol)
 import Data.Singletons.Prelude.List
 
 import Data.Constraint.HasDict1
@@ -60,8 +60,6 @@ import Options.Applicative.Help (renderHelp) -- (parserUsage, putDoc, renderPret
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
-
--- import Michelson.Typed.Value.Arbitrary
 
 
 -- traceShow' :: Show a => a -> b -> b
@@ -105,7 +103,7 @@ parseValueOpq label =
 parseEpField :: forall f t ann epPath fieldName. (Applicative f, SingI t, SingI ann, SingI epPath, SingI fieldName) -- (forall (x :: TOpq). SingI x => (Show (f (ValueOpq x)))),
   => Parser (EpField f t ann epPath fieldName)
 parseEpField =
-  withDict1 (sEpFieldT @ErrM (sing @t) (sing @ann) (sing @epPath) (sing @fieldName)) $
+  withDict1 (sEpFieldT @Symbol @ErrM (sing @t) (sing @ann) (sing @epPath) (sing @fieldName)) $
   EpField (sing @fieldName) . join traceShow' <$>
   parseRunAltE
     (pure $ WrapSing sing)
@@ -116,7 +114,7 @@ parseEpFields :: forall f t ann epPath. (Applicative f, SingI t, SingI ann, Sing
   => Mod CommandFields (EpFields f t ann epPath)
 parseEpFields =
   command (show $ fromSing (sing @epPath)) . flip info mempty $
-  traceShow' (fromSing $ sListEToErrM $ sEpFieldNames (sing @t) (sing @ann) (sing @epPath)) $
+  traceShow' (fromSing $ sListEToAltE $ sEpFieldNames (sing @t) (sing @ann) (sing @epPath)) $
   -- withDict1 (sEpFieldNames (sing @ann) (sing @epPath)) $
   EpFields (sing @epPath) <$>
   parseRunAltE @_ @WrappedSing @_ @Parser @(EpFieldNamesErrM t ann epPath)
