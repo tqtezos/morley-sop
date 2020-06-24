@@ -1,4 +1,8 @@
 {-# LANGUAGE TypeFamilyDependencies #-}
+{-# LANGUAGE ExplicitForAll #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+-- {-# LANGUAGE TypeOperators #-}
 
 {-# OPTIONS -Wno-missing-export-lists -Wno-unused-type-patterns #-}
 
@@ -109,7 +113,7 @@ epFieldTs t ann epPath =
 -- All EpPath's, unsorted
 epPathsRaw :: forall s t. AnnotatedAlg s t -> [Path s]
 epPathsRaw (ATOr _ aa ab as bs) =
-  ((:+) aa <$> epPathsRaw as) ++
+  ((:+) aa <$> epPathsRaw as) <>
   ((:+) ab <$> epPathsRaw bs)
 epPathsRaw (ATPair _ _ _ as bs) = liftA2 (:*) (epPathsRaw as) (epPathsRaw bs)
 epPathsRaw (ATOpq _ta) = [Here]
@@ -118,27 +122,25 @@ epPathsRaw (ATOpq _ta) = [Here]
 epPaths :: forall s t. Ord s => AnnotatedAlg s t -> [Path s]
 epPaths ann = sort (epPathsRaw ann)
 
-traverseEpPaths :: forall a s t. (Path a -> a -> State' s a) -> AnnotatedAlg a t -> State' s (AnnotatedAlg a t)
+traverseEpPaths :: forall a s t. (Path a -> Bool -> a -> State' s a) -> AnnotatedAlg a t -> State' s (AnnotatedAlg a t)
 traverseEpPaths fs (ATOr ann aa ab as bs) =
-  (fs Here aa >>>= \aa' ->
-  (fs Here ab >>>= \ab' ->
+  (fs Here False aa >>>= \aa' ->
+  (fs Here False ab >>>= \ab' ->
   ATOr ann aa' ab' <$$>
   (traverseEpPaths (fs . (:+) aa') as) <<*>>
   (traverseEpPaths (fs . (:+) ab') bs)
   ))
 traverseEpPaths fs (ATPair ann aa ab as bs) =
-  (fs Here aa >>>= \aa' ->
-  (fs Here ab >>>= \ab' ->
+  (fs Here True aa >>>= \aa' ->
+  (fs Here True ab >>>= \ab' ->
   ATPair ann aa' ab' <$$>
   traverseEpPaths (fs . (:*) Here) as <<*>>
   traverseEpPaths (fs . (:*) Here) bs -- Here is used as a collection of all other paths
   ))
 traverseEpPaths _fs (ATOpq ta) = pureState' (ATOpq ta)
 
--- count the number of occurrences of the path, then append "_n" if non-zero.
--- skip non-pair-field empty annotations
-uniqifyEpPathsStepSimple :: forall s. (Ord s, IsString s, Semigroup s) => Path s -> s -> State' (ListMap s Nat) s
-uniqifyEpPathsStepSimple _epPath annotation =
+uniqifyWithKey :: forall k s. (Ord k, IsString s, Semigroup s) => k -> s -> State' (ListMap k Nat) s
+uniqifyWithKey key annotation =
   (lookupModifyListMap
     0
     (\numAtPath ->
@@ -149,16 +151,38 @@ uniqifyEpPathsStepSimple _epPath annotation =
       , numAtPath + 1
       )
     )
-    annotation <$$>
+    key <$$>
     getState'
-    ) >>>= \(annotation', pathsMap') ->
-      putState' pathsMap' *>> pureState' annotation'
+    ) >>>= \(annotation', map') ->
+      putState' map' *>>
+      pureState' annotation'
+
+-- count the number of occurrences of the path, then append "_n" if non-zero.
+-- skip non-pair-field empty annotations
+uniqifyEpPathsStepSimple :: forall s. (Ord s, IsString s, Semigroup s) => Path s -> Bool -> s -> State' (ListMap s Nat) s
+uniqifyEpPathsStepSimple _epPath _isField annotation = uniqifyWithKey annotation annotation
 
 uniqifyEpPathsSimpler :: forall s t. (Ord s, IsString s, Semigroup s) => AnnotatedAlg s t -> AnnotatedAlg s t
 uniqifyEpPathsSimpler ann =
   traverseEpPaths uniqifyEpPathsStepSimple ann `evalState'`
   emptyListMap
 
+uniqifyEpAnnotationsStep :: forall s. (Ord s, IsString s, Semigroup s) => Path s -> Bool -> s -> State' (ListMap s Nat) s
+uniqifyEpAnnotationsStep _epPath False annotation = uniqifyWithKey annotation annotation
+uniqifyEpAnnotationsStep _epPath True annotation = pureState' annotation
+
+-- count the number of occurrences of the path, then append "_n" if non-zero.
+-- skip non-pair-field empty annotations
+uniqifyEpFieldsStep :: forall s. (Ord s, IsString s, Semigroup s) => Path s -> Bool -> s -> State' (ListMap (Path s, s) Nat) s
+uniqifyEpFieldsStep _epPath False annotation = pureState' annotation
+uniqifyEpFieldsStep epPath True annotation = uniqifyWithKey (epPath, annotation) annotation
+
+uniqifyEpPaths :: forall s t. (Ord s, IsString s, Semigroup s) => AnnotatedAlg s t -> AnnotatedAlg s t
+uniqifyEpPaths ann =
+  traverseEpPaths uniqifyEpFieldsStep
+  (traverseEpPaths uniqifyEpAnnotationsStep ann
+  `evalState'` emptyListMap)
+  `evalState'` emptyListMap
 
 {-
 $(singletonsOnly [d|

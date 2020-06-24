@@ -11,7 +11,7 @@ import Data.Functor.Classes
 
 import Control.AltError
 import Control.AltError.TH
-import Data.AltError
+import Data.AltError.TH
 import Data.AltError.Run
 import Data.Singletons.WrappedSing
 

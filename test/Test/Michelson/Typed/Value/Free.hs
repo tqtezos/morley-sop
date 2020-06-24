@@ -13,6 +13,7 @@ import Michelson.Typed.Scope
 import Data.Type.Equality
 
 import Data.AltError
+import Data.AltError.TH ()
 import Data.Constraint.HasDict1
 
 import Prelude

@@ -27,7 +27,7 @@ import Michelson.Typed.Instr
 
 import Control.AltError
 import Data.AltError
-import Data.ListError.TH
+import Data.AltError.TH
 import Data.AltError.Run
 import Data.Singletons.WrappedSing
 
@@ -189,10 +189,10 @@ parsePrintValueFromContractSource forceSingleLine contractSrc =
     Right (TypeCheck.SomeContract (FullContract _ (ParamNotesUnsafe paramNotes' :: ParamNotes cp) _)) ->  -- caseAltE
       case toSing (Michelson.annotatedFromNotes paramNotes') of
         SomeSing (sann :: Sing ann) ->
-          let sann' =  (sUniqifyEpPathsSimpler (singToAnnotatedAlg sann)) in
+          let sann' =  (sUniqifyEpPaths (singToAnnotatedAlg sann)) in
             withDict1 (singToTAlg (sing @cp)) $
             withDict1 sann' $
-            parsePrintValue @(ToTAlg cp) @((UniqifyEpPathsSimpler (ToAnnotatedAlg ann))) forceSingleLine
+            parsePrintValue @(ToTAlg cp) @((UniqifyEpPaths (ToAnnotatedAlg ann))) forceSingleLine
 
 parsePrintValueFromContract :: IO ()
 parsePrintValueFromContract = do

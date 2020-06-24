@@ -41,6 +41,8 @@ library:
     - lens
     - template-haskell
     - th-desugar
+    - haskell-src-meta
+    - haskell-src-exts
 
 executables:
   morley-sop:

@@ -11,13 +11,13 @@ import Control.Monad
 import Data.Either
 import Data.Eq
 import Data.Function
-import Data.Functor.Classes
 import Data.String
 import Text.Show
 import Text.Read
 
 import Control.AltError
 import Data.AltError
+import Data.AltError.TH ()
 import Data.Constraint.HasDict1
 
 import Data.Singletons.TH
@@ -31,7 +31,7 @@ newtype ListE str a =
   ListE
     { unListE :: Either str [a]
     }
-  deriving (Eq, Read)
+  deriving (Eq, Read, Show)
 
 $(genSingletons [''ListE])
 
@@ -39,15 +39,15 @@ $(singletons [d|
   deriving instance Functor (ListE str)
   |])
 
-instance Show2 ListE where
-  liftShowsPrec2 spx slx spy sly d (ListE xs) =
-    showsUnaryWith (liftShowsPrec2 spx slx (liftShowsPrec spy sly) (liftShowList spy sly)) "ListE" d xs
+-- instance Show2 ListE where
+--   liftShowsPrec2 spx slx spy sly d (ListE xs) =
+--     showsUnaryWith (liftShowsPrec2 spx slx (liftShowsPrec spy sly) (liftShowList spy sly)) "ListE" d xs
 
-instance Show str => Show1 (ListE str) where
-  liftShowsPrec = liftShowsPrec2 showsPrec showList
+-- instance Show str => Show1 (ListE str) where
+--   liftShowsPrec = liftShowsPrec2 showsPrec showList
 
-instance (Show str, Show a) => Show (ListE str a) where
-  showsPrec = showsPrec1
+-- instance (Show str, Show a) => Show (ListE str a) where
+--   showsPrec = showsPrec1
 
 instance (HasDict1 str, HasDict1 a) => HasDict1 (ListE str a) where
   evidence1 = $(gen_evidence1 ''ListE)

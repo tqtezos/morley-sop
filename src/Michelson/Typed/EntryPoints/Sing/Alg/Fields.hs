@@ -12,7 +12,7 @@ import GHC.Generics ((:.:)(..))
 import Prelude hiding (Map, All, unwords, show, set, unlines)
 
 import Control.AltError
-import Data.AltError
+import Data.AltError.TH
 import Data.AltError.Run
 
 import Michelson.Typed.Annotation.Path

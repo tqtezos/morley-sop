@@ -14,7 +14,7 @@ import Text.Show
 -- import Control.AltError
 import Control.AltError.TH
 import Data.AltError
-import Data.AltError.TH ()
+import Data.AltError.TH
 import Data.Singletons.WrappedSing
 import Data.Constraint.HasDict1
 

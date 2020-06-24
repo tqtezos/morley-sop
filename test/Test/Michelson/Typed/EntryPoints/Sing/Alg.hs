@@ -62,11 +62,12 @@ test_IsoEpValue = testProperty "Iso runEpValue" $
                   \(ann :: Annotated Text t') (x :: Value t') ->
                   case toSing ann of
                     SomeSing (sann :: Sing ann') ->
-                      let singToAnnotatedAlgSann = ((sUniqifyEpPathsSimpler (singToAnnotatedAlg sann)) :: Sing ((UniqifyEpPathsSimpler (ToAnnotatedAlg ann')))) in
+                      let singToAnnotatedAlgSann = ((sUniqifyEpPaths (singToAnnotatedAlg sann)) :: Sing ((UniqifyEpPaths (ToAnnotatedAlg ann')))) in
                       counterexample (("epPaths: "<>) . show $ fromSing (sEpPaths (singToAnnotatedAlg sann))) $
                       counterexample (("uniqified epPaths: "<>) . show $ fromSing (sEpPaths singToAnnotatedAlgSann)) $
-                      counterexample (("uniqified epPaths fields: \n"<>) . unlines . fmap show $ fromSing (singFun1 @(EpFieldNamesErrMSym2 (ToTAlg t') ((UniqifyEpPathsSimpler (ToAnnotatedAlg ann')))) (sEpFieldNamesErrM singToTAlgSt singToAnnotatedAlgSann) `sFmap` sEpPaths singToAnnotatedAlgSann)) $
-                      counterexample (("uniqified annotation: "<>) . show $ fromSing ((sUniqifyEpPathsSimpler (singToAnnotatedAlg sann)))) $
+                      counterexample (("uniqified epPaths fields: \n"<>) . unlines . fmap show $
+                        fromSing (singFun1 @(EpFieldNamesErrMSym2 (ToTAlg t') ((UniqifyEpPaths (ToAnnotatedAlg ann')))) (sEpFieldNamesErrM singToTAlgSt singToAnnotatedAlgSann) `sFmap` sEpPaths singToAnnotatedAlgSann)) $
+                      counterexample (("uniqified annotation: "<>) . show $ fromSing ((sUniqifyEpPaths (singToAnnotatedAlg sann)))) $
 
                       withDict @_ @_ @Property (prfAllShowEpFields singToTAlgSt singToAnnotatedAlgSann (sEpPaths singToAnnotatedAlgSann)) $
                       propIsoWithMiddle

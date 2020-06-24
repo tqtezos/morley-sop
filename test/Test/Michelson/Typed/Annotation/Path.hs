@@ -67,7 +67,7 @@ test_Injective_ppPath = testGroup "ppPath should be injective"
                     case toSing ann of
                       SomeSing (sann :: Sing ann') ->
                         allUnique . fmap ppPath . fromSing . sEpPaths $
-                        (sUniqifyEpPathsSimpler (singToAnnotatedAlg sann) :: Sing ((UniqifyEpPathsSimpler (ToAnnotatedAlg ann'))))
+                        (sUniqifyEpPaths (singToAnnotatedAlg sann) :: Sing ((UniqifyEpPaths (ToAnnotatedAlg ann'))))
   ]
 
 test_Ord_Path :: TestTree
