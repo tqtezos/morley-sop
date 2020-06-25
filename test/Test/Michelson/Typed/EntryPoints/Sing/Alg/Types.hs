@@ -40,7 +40,7 @@ import Test.QuickCheck
 import Test.QuickCheck.Monadic
 
 -- | Assert that `epPathsAbbrev` and `epPaths` produce the same non-abbreviated paths
-expectedAbbreviation :: forall s t. (Ord s, Show s) => AnnotatedAlg s t -> Property
+expectedAbbreviation :: forall s t. (IsString s, Ord s, Show s) => AnnotatedAlg s t -> Property
 expectedAbbreviation = liftM2 ((===) . snd) (unzip . epPathsAbbrev) epPaths
 
 -- | Assert that all elements are unique
@@ -60,7 +60,7 @@ allUnique =
          put)
 
 -- | Assert that all abbreviations produced by `epPathsAbbrev` are unique
-uniqueAbbreviations :: forall s t. (Ord s, Show s) => AnnotatedAlg s t -> Property
+uniqueAbbreviations :: forall s t. (IsString s, Ord s, Show s) => AnnotatedAlg s t -> Property
 uniqueAbbreviations = allUnique . fmap fst . epPathsAbbrev
 
 test_ExpectedAbbreviation :: TestTree

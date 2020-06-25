@@ -131,7 +131,7 @@ joinFn f x = f x x
 --
 -- Abbreviation is performed as follows:
 -- - For `ATOr`, we omit the prefixes if @(epPathsAbbrevRaw as)@, @(epPathsAbbrevRaw bs)@ are disjoint
-epPathsAbbrevRaw :: forall s t. Eq s => AnnotatedAlg s t -> [(Path s, Path s)]
+epPathsAbbrevRaw :: forall s t. (Eq s, IsString s) => AnnotatedAlg s t -> [(Path s, Path s)]
 epPathsAbbrevRaw (ATOr _ aa ab as bs) =
   bool_
     (
@@ -142,7 +142,7 @@ epPathsAbbrevRaw (ATOr _ aa ab as bs) =
      (fmap ((:+) aa) <$> as') <>
      (fmap ((:+) ab) <$> bs')
     )
-    (null (fmap fst as' `intersect` fmap fst bs'))
+    (null (fmap fst as' `intersect` fmap fst bs') && aa == "" && ab == "")
   where
     bimapTuple :: (sa -> sb) -> (ta -> tb) -> (sa, ta) -> (sb, tb)
     bimapTuple f g (a, b) = (f a, g b)
@@ -162,8 +162,8 @@ epPathsAbbrevRaw (ATOpq _ta) = [(Here, Here)]
 -- @
 --  and . liftM2 ((==) . snd) epPathsAbbrev epPaths
 -- @
-epPathsAbbrev :: forall s t. Ord s => AnnotatedAlg s t -> [(Path s, Path s)]
-epPathsAbbrev ann = sort (epPathsAbbrevRaw ann)
+epPathsAbbrev :: forall s t. (IsString s, Ord s) => AnnotatedAlg s t -> [(Path s, Path s)]
+epPathsAbbrev ann = sortOn snd (epPathsAbbrevRaw ann)
 
 traverseEpPaths :: forall a s t. (Path a -> Bool -> a -> State' s a) -> AnnotatedAlg a t -> State' s (AnnotatedAlg a t)
 traverseEpPaths fs (ATOr ann aa ab as bs) =

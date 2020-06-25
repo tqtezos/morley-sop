@@ -104,4 +104,5 @@ tests:
       - constraints
       - lens
       - checkers
+      - transformers
 
