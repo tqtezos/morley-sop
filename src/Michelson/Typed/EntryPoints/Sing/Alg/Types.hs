@@ -8,7 +8,8 @@
 
 module Michelson.Typed.EntryPoints.Sing.Alg.Types where
 
-import Prelude hiding (unwords, show)
+import Prelude hiding (unwords, show, null)
+import Data.List
 
 import Control.AltError
 import Data.AltError
@@ -121,6 +122,48 @@ epPathsRaw (ATOpq _ta) = [Here]
 -- All EpPath's, sorted
 epPaths :: forall s t. Ord s => AnnotatedAlg s t -> [Path s]
 epPaths ann = sort (epPathsRaw ann)
+
+-- | `join` specialized to @(`->`) a@, for singletons to work
+joinFn :: (a -> a -> b) -> a -> b
+joinFn f x = f x x
+
+-- | All EpPath's abbreviated, unsorted
+--
+-- Abbreviation is performed as follows:
+-- - For `ATOr`, we omit the prefixes if @(epPathsAbbrevRaw as)@, @(epPathsAbbrevRaw bs)@ are disjoint
+epPathsAbbrevRaw :: forall s t. Eq s => AnnotatedAlg s t -> [(Path s, Path s)]
+epPathsAbbrevRaw (ATOr _ aa ab as bs) =
+  bool_
+    (
+     (joinFn bimapTuple ((:+) aa) <$> as') <>
+     (joinFn bimapTuple ((:+) ab) <$> bs')
+    )
+    (
+     (fmap ((:+) aa) <$> as') <>
+     (fmap ((:+) ab) <$> bs')
+    )
+    (null (fmap fst as' `intersect` fmap fst bs'))
+  where
+    bimapTuple :: (sa -> sb) -> (ta -> tb) -> (sa, ta) -> (sb, tb)
+    bimapTuple f g (a, b) = (f a, g b)
+
+    as' = epPathsAbbrevRaw as
+    bs' = epPathsAbbrevRaw bs
+epPathsAbbrevRaw (ATPair _ _ _ as bs) =
+  liftA2 (joinFn biliftTuple (:*)) (epPathsAbbrevRaw as) (epPathsAbbrevRaw bs)
+  where
+    biliftTuple :: (sa -> sb -> sc) -> (sd -> se -> sf) -> (sa, sd) -> (sb, se) -> (sc, sf)
+    biliftTuple f g (ax, ay) (bx, by) = (f ax bx, g ay by)
+epPathsAbbrevRaw (ATOpq _ta) = [(Here, Here)]
+
+-- All EpPath's abbreviated, sorted
+--
+-- We should have:
+-- @
+--  and . liftM2 ((==) . snd) epPathsAbbrev epPaths
+-- @
+epPathsAbbrev :: forall s t. Ord s => AnnotatedAlg s t -> [(Path s, Path s)]
+epPathsAbbrev ann = sort (epPathsAbbrevRaw ann)
 
 traverseEpPaths :: forall a s t. (Path a -> Bool -> a -> State' s a) -> AnnotatedAlg a t -> State' s (AnnotatedAlg a t)
 traverseEpPaths fs (ATOr ann aa ab as bs) =
