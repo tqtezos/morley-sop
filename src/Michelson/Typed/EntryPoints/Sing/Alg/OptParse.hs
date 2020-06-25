@@ -13,7 +13,7 @@ import Data.Either
 import Data.List (isInfixOf)
 import Data.String
 import Data.Type.Equality
-import Prelude hiding (fail, lines, unwords, unlines, show, forM_)
+import Prelude hiding (fail, lines, unwords, unlines, show, forM_, (%~))
 import GHC.Generics ((:.:)(..))
 import Text.Show
 import System.Environment (getArgs)
@@ -27,10 +27,11 @@ import Michelson.Typed.Instr
 
 import Control.AltError
 import Data.AltError
-import Data.ListError.TH
+import Data.AltError.TH
 import Data.AltError.Run
 import Data.Singletons.WrappedSing
 
+import Michelson.Typed.Annotation.Path
 import Michelson.Typed.Annotation.Sing.Alg
 import Michelson.Typed.EntryPoints.Sing.Alg
 -- import Michelson.Typed.EntryPoints.Sing.Alg.Aeson (assertOpAbsense) -- ExampleParam,
@@ -44,14 +45,18 @@ import Michelson.Typed.Value.Parse
 import qualified Michelson.Typed.Annotation.Sing.Notes as Michelson
 
 
+import Data.Constraint
 import Data.Singletons
+import Data.Singletons.Decide
 import Data.Singletons.TypeLits (Symbol)
 import Data.Singletons.Prelude.List
+import Data.Singletons.Prelude.Tuple
 
 import Data.Constraint.HasDict1
 
 import Data.SOP (NP, NS)
 import qualified Data.SOP as SOP
+import qualified Data.SOP.Constraint as SOP
 
 -- import Data.Aeson hiding (Value, Success)
 import Options.Applicative
@@ -95,7 +100,7 @@ parseValueOpq label =
 -- | Unnamed fields are marked with @%unnamed@
 --
 -- (The @%@ symbol is not allowed in Michelson annotations.)
-parseEpField :: forall f t ann epPath fieldName. (Applicative f, SingI t, SingI ann, SingI epPath, SingI fieldName) -- (forall (x :: TOpq). SingI x => (Show (f (ValueOpq x)))),
+parseEpField :: forall f t ann epPath fieldName. (Applicative f, SingI t, SingI ann, SingI epPath, SingI fieldName)
   => Parser (EpField f t ann epPath fieldName)
 parseEpField =
   withDict1 (sEpFieldT @Symbol @ErrM (sing @t) (sing @ann) (sing @epPath) (sing @fieldName)) $
@@ -105,10 +110,14 @@ parseEpField =
     (Comp1 . pure <$> parseValueOpq (fromMaybe "%unnamed" $ T.unpack <$> fromSing (sing @fieldName)))
     sing
 
-parseEpFields :: forall f t ann epPath. (Applicative f, SingI t, SingI ann, SingI epPath) -- (forall (x :: TOpq). SingI x => (Show (f (ValueOpq x)))),
-  => Mod CommandFields (EpFields f t ann epPath)
+parseEpFields :: forall f t ann (abbrevPath :: EpPath) epPath.
+  ( Applicative f
+  , SingI t, SingI ann, SingI abbrevPath, SingI epPath
+  )
+  => Mod CommandFields (RunSnd (EpFields f t ann) '(abbrevPath, epPath))
 parseEpFields =
-  command (show $ fromSing (sing @epPath)) . flip info mempty $
+  command (show $ fromSing (sing @abbrevPath)) . flip info mempty $
+  RunSnd <$>
   EpFields (sing @epPath) <$>
   parseRunAltE @_ @WrappedSing @_ @Parser @(EpFieldNamesErrM t ann epPath)
     (pure $ WrapSing sing)
@@ -136,11 +145,106 @@ voidHelpOption = option (readerAbort ShowHelpText) $ mconcat
   [ noArgError ShowHelpText
   , metavar "" ]
 
+data RunSnd (f :: b -> Type) (xs :: (a, b)) where
+  RunSnd :: forall a b f (x :: a) (y :: b). f y -> RunSnd f '(x, y)
+
+unRunSnd :: RunSnd f '(x, y) -> f y
+unRunSnd (RunSnd x) = x
+
+class SingI xs => IsSnd (xs :: (a, b)) (z :: b) where
+  runSnd :: forall f. RunSnd f xs -> f z
+
+instance (SingI x, SingI y, y ~ z) => IsSnd '(x, y) z where
+  runSnd = unRunSnd
+
+-- | This assertion will `error` if the constraint does not hold
+--
+-- `epPaths` could be redefined to @map snd . epPathsAbbrev@,
+-- in which case this assertion could be replaced with a straightforward proof.
+assertEpPathsAbbrev ::
+     forall t (ann :: AnnotatedAlg Symbol t).
+     Sing t
+  -> Sing ann
+  -> Dict ( SOP.SameShapeAs (EpPathsAbbrev ann) (EpPaths ann)
+          , SOP.SameShapeAs (EpPaths ann) (EpPathsAbbrev ann)
+          , SOP.AllZip IsSnd (EpPathsAbbrev ann) (EpPaths ann))
+assertEpPathsAbbrev _st sann = either (error . fromString) id $ do
+  let epAbbrevs = sEpPathsAbbrev sann
+  let eps = sEpPaths sann
+  prf1 <- decSameShapeAs epAbbrevs eps
+  withDict prf1 $ do
+      prf2 <- decSameShapeAs eps epAbbrevs
+      withDict prf2 $ do
+        prf3 <- decAllZipF decIsSnd epAbbrevs eps
+        return $
+          withDict prf3 $
+          withDict (singAllSingI epAbbrevs) $
+          withDict (singAllSingI eps) $
+          Dict
+
+-- | Decide whether `IsSnd` holds for the inputs or fail with an error
+decIsSnd ::
+     forall a b (x :: (a, b)) (y :: b). (HasDict1 a, HasDict1 b, SDecide b, SingKind b, Show (Demote b))
+  => Sing x
+  -> Sing y
+  -> Either String (Dict (IsSnd x y))
+decIsSnd = \case
+  STuple2 sx sy -> withDict1 sx $ withDict1 sy $ \sz ->
+    case sy %~ sz of
+      Proved Refl -> return Dict
+      Disproved _ -> Left $ "decIsSnd: unequal values: " ++ show (fromSing sy, fromSing sz)
+
+-- | Decide whether `SOP.AllZipF` holds for the inputs or fail with an error
+decAllZipF ::
+     forall a b (c :: a -> b -> Constraint) (xs :: [a]) (ys :: [b]). (HasDict1 a, HasDict1 b, SOP.SameShapeAs xs ys, SOP.SameShapeAs ys xs)
+  => (forall x y. Sing x -> Sing y -> Either String (Dict (c x y)))
+  -> Sing xs
+  -> Sing ys
+  -> Either String (Dict (SOP.AllZipF c xs ys))
+decAllZipF f =
+  \case
+    SCons sx sxs ->
+      \case
+        SCons sy sys -> do
+          cxy <- f sx sy
+          cxys <- decAllZipF f sxs sys
+          return $
+            withDict cxy $
+            withDict cxys $
+            withDict (singAllSingI sxs) $
+            withDict (singAllSingI sys) Dict
+    SNil ->
+      \case
+        SNil -> return Dict
+
+-- | Decide whether `SOP.SameShapeAs` holds for the inputs or fail with an error
+decSameShapeAs ::
+     forall a b (xs :: [a]) (ys :: [b]).
+     (SingKind a, Show (Demote a), SingKind b, Show (Demote b))
+  => Sing xs
+  -> Sing ys
+  -> Either String (Dict (SOP.SameShapeAs xs ys))
+decSameShapeAs =
+  \case
+    SNil ->
+      \case
+        SNil -> return Dict
+        SCons sy sys -> Left $ "decSameShapeAs: right larger than left:" <> show (fromSing sy, fromSing sys)
+    SCons sx sxs ->
+      \case
+        SNil -> Left $ "decSameShapeAs: left larger than right:" <> show (fromSing sx, fromSing sxs)
+        SCons _sy sys ->
+          case decSameShapeAs sxs sys of
+            Left err -> Left err
+            Right Dict -> return Dict
+
 parseEpValue ::
      forall t ann. (SingI t, SingI ann)
   => (String, Parser (EpValue t ann))
 parseEpValue =
-  withDict1 (sEpPaths (sing @ann)) $
+  withDict1 (sEpPathsAbbrev (sing @ann)) $
+  withDict (singAllSingI (sEpPaths (sing @ann))) $
+  withDict (singAllSingI (sEpPathsAbbrev (sing @ann))) $
   (,)
   -- "\n[parseEpValue]\n" $
     (fromString . unlines $
@@ -150,17 +254,18 @@ parseEpValue =
      getCommandHelp
        (parseNS
           @_
+          @Parser
           @_
-          @_
-          @(EpPaths ann)
+          @(EpPathsAbbrev ann)
           (const voidHelpOption)
           -- readerError -- (fmap (error "impossible") . flip abortOption mempty . ErrorMsg)
-          (hsubparser (parseEpFields @(AltE [String]) @t @ann))) `traverse`
-     (fmap show . fromSing $ sEpPaths (sing @ann))) $
+          ((case sing @x of STuple2 sxa sxb -> withDict1 sxa $ withDict1 sxb $ hsubparser (parseEpFields @(AltE [String]) @t @ann)) :: forall x. SingI x => Parser (RunSnd (EpFields (AltE [String]) t ann) x))) `traverse`
+     (fmap (show . fst) . fromSing $ sEpPathsAbbrev (sing @ann))) $
   -- (fromSing $ sEpPaths (sing @ann)) $ parseNS @_ @_ @_ @(EpPaths ann) (flip option mempty . readerError) (hsubparser (parseEpFields @AltError @t @ann))) $ -- ) `displayS` "") $
-  EpValue <$>
-  parseNS (const voidHelpOption) (hsubparser parseEpFields)
-  -- readerError -- (fmap (error "impossible") . flip abortOption mempty . ErrorMsg)
+  withDict (assertEpPathsAbbrev (sing @t) (sing @ann)) $
+  EpValue . SOP.htrans (Proxy @IsSnd) runSnd <$>
+  parseNS @_ @_ @_ @(EpPathsAbbrev ann) (const voidHelpOption)
+          ((case sing @x of STuple2 sxa sxb -> withDict1 sxa $ withDict1 sxb $ hsubparser (parseEpFields @SOP.I @t @ann)) :: forall (x :: (EpPath, EpPath)). SingI x => Parser (RunSnd (EpFields SOP.I t ann) x))
   where
     isHelpLine =
       liftM2 (||) ("Available options" `isInfixOf`) ("-h,--help" `isInfixOf`)
@@ -189,10 +294,10 @@ parsePrintValueFromContractSource forceSingleLine contractSrc =
     Right (TypeCheck.SomeContract (FullContract _ (ParamNotesUnsafe paramNotes' :: ParamNotes cp) _)) ->  -- caseAltE
       case toSing (Michelson.annotatedFromNotes paramNotes') of
         SomeSing (sann :: Sing ann) ->
-          let sann' =  (sUniqifyEpPathsSimpler (singToAnnotatedAlg sann)) in
+          let sann' =  (sUniqifyEpPaths (singToAnnotatedAlg sann)) in
             withDict1 (singToTAlg (sing @cp)) $
             withDict1 sann' $
-            parsePrintValue @(ToTAlg cp) @((UniqifyEpPathsSimpler (ToAnnotatedAlg ann))) forceSingleLine
+            parsePrintValue @(ToTAlg cp) @((UniqifyEpPaths (ToAnnotatedAlg ann))) forceSingleLine
 
 parsePrintValueFromContract :: IO ()
 parsePrintValueFromContract = do

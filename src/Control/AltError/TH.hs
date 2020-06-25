@@ -1,6 +1,13 @@
 {-# LANGUAGE FunctionalDependencies #-}
 
-{-# OPTIONS -Wno-missing-export-lists #-}
+-- adding -Wno-redundant-constraints does not prevent the warnings, even though
+-- GHC emits the warning:
+-- @
+--  -Wno-duplicate-constraints is deprecated: it is subsumed by -Wredundant-constraints
+--
+--  {-# OPTIONS -Wno-missing-export-lists -Wno-duplicate-constraints #-}
+-- @
+{-# OPTIONS -Wno-missing-export-lists -Wno-duplicate-constraints #-}
 
 -- | See `Control.AltError` for documentation
 module Control.AltError.TH where

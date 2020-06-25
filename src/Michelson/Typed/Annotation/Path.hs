@@ -92,6 +92,7 @@ $(genSingletons [''Path])
 $(singEqInstance ''Path)
 $(singOrdInstance ''Path)
 $(singShowInstance ''Path)
+$(singDecideInstance ''Path)
 
 instance HasDict1 a => HasDict1 (Path a) where
   evidence1 = $(gen_evidence1 ''Path)

@@ -14,6 +14,7 @@ import Text.Show
 
 import Control.AltError
 import Data.AltError
+import Data.AltError.TH
 import Data.AltError.Run
 
 import Michelson.Typed.Annotation.Path
